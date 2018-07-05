@@ -1,0 +1,15 @@
+html,
+body,
+#__next {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.anon-layout {
+  height: 100%;
+  background-color: whitesmoke;
+  .card {
+    width: 60%;
+    margin: auto;
+  }
+}
