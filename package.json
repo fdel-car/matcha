@@ -1,0 +1,24 @@
+{
+  "name": "matcha",
+  "version": "1.0.0",
+  "description": "Parce que l’amour aussi, ca s’industrialise.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node server.js",
+    "build": "next build",
+    "start": "NODE_ENV=production node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@zeit/next-sass": "^0.2.0",
+    "express": "^4.16.3",
+    "lodash.get": "^4.4.2",
+    "next": "^6.1.1",
+    "node-sass": "^4.9.0",
+    "react": "^16.4.1",
+    "react-dom": "^16.4.1"
+  }
+}
