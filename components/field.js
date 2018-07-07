@@ -1,35 +1,14 @@
 class Field extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { value: '', className: '', error: false, messages: [] };
-    this.handleChange = this.handleChange.bind(this);
-  }
-
-  handleChange(event) {
-    const value = event.target.value;
-    this.setState({ value });
-    if (!this.props.validate) return;
-    const { isValid, messages } = this.props.validate(value);
-    if (value && !isValid)
-      this.setState({
-        messages,
-        className: ' is-danger',
-        error: true
-      });
-    else
-      this.setState({
-        messages: value ? messages : [],
-        className: value ? ' is-success' : '',
-        error: false
-      });
-  }
-
   render() {
+    const isValid = (this.props.messages || []).length === 0;
     const iconLeft = this.props.iconLeft;
     const iconRight =
-      this.props.validate &&
-      this.state.value &&
-      (this.state.error ? '-exclamation-triangle' : '-check');
+      this.props.value && (isValid ? '-check' : '-exclamation-triangle');
+    const className = this.props.value
+      ? isValid
+        ? ' is-success'
+        : ' is-danger'
+      : '';
     return (
       <div className="field">
         <label className="label">{this.props.label}</label>
@@ -41,11 +20,12 @@ class Field extends React.Component {
           }
         >
           <input
-            className={'input' + this.state.className}
+            className={'input' + className}
             type={this.props.type}
             placeholder={this.props.placeholder}
-            value={this.state.value}
-            onChange={this.handleChange}
+            value={this.props.value}
+            onChange={this.props.onChange}
+            name={this.props.name}
           />
           {iconLeft && (
             <span className="icon is-small is-left">
@@ -58,10 +38,10 @@ class Field extends React.Component {
             </span>
           )}
         </div>
-        {this.state.messages.length > 0 ? (
-          <p className={'help' + this.state.className}>
-            {this.state.messages.map(message => <p>{message}</p>)}
-          </p>
+        {this.props.value && !isValid ? (
+          <div className={'help' + className}>
+            {this.props.messages.map((message, i) => <p key={i}>{message}</p>)}
+          </div>
         ) : null}
       </div>
     );
