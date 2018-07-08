@@ -8,6 +8,7 @@ import {
   checkPassword,
   confirmPassword
 } from '../components/validators';
+const sjcl = require('../sjcl');
 
 const rules = {
   last_name: checkName,
@@ -38,7 +39,26 @@ class Register extends React.Component {
       password: { value: '', messages: [] },
       confirm_pwd: { value: '', messages: [] }
     };
+    this.handleSubmit = this.handleSubmit.bind(this);
     this.handleChange = this.handleChange.bind(this);
+  }
+
+  handleSubmit(event) {
+    event.preventDefault();
+    if (
+      Object.keys(this.state).some(
+        key => !this.state[key].value || this.state[key].messages.length > 0
+      )
+    )
+      return;
+    const bitArray = sjcl.hash.sha256.hash(this.state.password.value);
+    console.log({
+      first_name: this.state.first_name.value,
+      last_name: this.state.last_name.value,
+      username: this.state.username.value,
+      email: this.state.email.value,
+      password: sjcl.codec.hex.fromBits(bitArray)
+    });
   }
 
   handleChange(event) {
@@ -50,12 +70,11 @@ class Register extends React.Component {
         messages = rules[target.name](this.state.password.value)(target.value);
       else if (target.name === 'password') {
         messages = rules[target.name](this.props.list)(target.value);
+        const confirm_pwd = this.state.confirm_pwd;
         this.setState({
           confirm_pwd: {
-            ...this.state.confirm_pwd,
-            messages: rules['confirm_pwd'](target.value)(
-              this.state.confirm_pwd.value
-            )
+            ...confirm_pwd,
+            messages: rules['confirm_pwd'](target.value)(confirm_pwd.value)
           }
         });
       } else messages = rules[target.name](target.value);
@@ -70,7 +89,7 @@ class Register extends React.Component {
       <Layout anon={true}>
         <div className="card">
           <div className="card-content">
-            <form>
+            <form onSubmit={this.handleSubmit}>
               <p className="subtitle" style={{ textAlign: 'center' }}>
                 Create your account
                 <br />
@@ -144,6 +163,15 @@ class Register extends React.Component {
                 className="button is-info"
                 type="submit"
                 value="Let's go!"
+                disabled={
+                  Object.keys(this.state).some(
+                    key =>
+                      !this.state[key].value ||
+                      this.state[key].messages.length > 0
+                  )
+                    ? true
+                    : null
+                }
               />
             </form>
             <hr style={{ margin: '0.75rem 0' }} />
