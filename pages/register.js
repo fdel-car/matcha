@@ -7,7 +7,7 @@ import {
   checkEmail,
   checkPassword,
   confirmPassword
-} from '../components/validators';
+} from '../components/verification';
 const sjcl = require('../sjcl');
 
 const rules = {
@@ -22,11 +22,7 @@ const rules = {
 class Register extends React.Component {
   static async getInitialProps({ req }) {
     const baseUrl = req ? `${req.protocol}://${req.get('Host')}` : '';
-    console.log('Password list is loading...');
-    const response = await fetch(baseUrl + '/bad-password-list');
-    const list = await response.text();
-    console.log('File loaded and stored.');
-    return { list };
+    return { baseUrl };
   }
 
   constructor(props) {
@@ -41,6 +37,14 @@ class Register extends React.Component {
     };
     this.handleSubmit = this.handleSubmit.bind(this);
     this.handleChange = this.handleChange.bind(this);
+  }
+
+  async componentDidMount() {
+    console.log('Password list is loading...');
+    const response = await fetch(this.props.baseUrl + '/breached');
+    const list = await response.text();
+    console.log('File loaded and stored.');
+    this.setState({ list });
   }
 
   handleSubmit(event) {
@@ -69,7 +73,7 @@ class Register extends React.Component {
       if (target.name === 'confirm_pwd')
         messages = rules[target.name](this.state.password.value)(target.value);
       else if (target.name === 'password') {
-        messages = rules[target.name](this.props.list)(target.value);
+        messages = rules[target.name](this.state.list)(target.value);
         const confirm_pwd = this.state.confirm_pwd;
         this.setState({
           confirm_pwd: {

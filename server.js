@@ -5,17 +5,20 @@ const next = require('next');
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
 const handle = app.getRequestHandler();
+const apiEndpoints = require('./api/router');
 
 app
   .prepare()
   .then(() => {
     const server = express();
 
-    server.get('/bad-password-list', (req, res) => {
-      fs.readFile('bad-password-list.txt', (err, data) => {
+    server.use('/api', apiEndpoints);
+
+    server.get('/breached', (req, res) => {
+      fs.readFile('breached.txt', (err, data) => {
         if (err) throw err;
         res.setHeader('content-type', 'text/plain');
-        res.send(data);
+        res.status(200).send(data);
       });
     });
 

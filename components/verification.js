@@ -1,5 +1,3 @@
-import 'isomorphic-fetch';
-
 const checkName = name => {
   let messages = [];
   const regex = /^[a-zA-Z \-]+$/;
