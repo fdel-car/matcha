@@ -1,4 +1,5 @@
 const express = require('express');
+const bodyParser = require('body-parser');
 const fs = require('fs');
 const next = require('next');
 
@@ -11,12 +12,17 @@ app
   .prepare()
   .then(() => {
     const server = express();
+    server.use(bodyParser.json());
+    server.use(bodyParser.urlencoded({ extended: true }));
 
     server.use('/api', apiEndpoints);
 
     server.get('/breached', (req, res) => {
       fs.readFile('breached.txt', (err, data) => {
-        if (err) throw err;
+        if (err) {
+          console.error(err.message);
+          res.sendStatus(404);
+        }
         res.setHeader('content-type', 'text/plain');
         res.status(200).send(data);
       });

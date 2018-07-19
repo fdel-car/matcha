@@ -27,14 +27,11 @@ class Register extends React.Component {
 
   constructor(props) {
     super(props);
-    this.state = {
-      last_name: { value: '', messages: [] },
-      first_name: { value: '', messages: [] },
-      username: { value: '', messages: [] },
-      email: { value: '', messages: [] },
-      password: { value: '', messages: [] },
-      confirm_pwd: { value: '', messages: [] }
-    };
+    let obj = {};
+    Object.keys(rules).forEach(key => {
+      obj[key] = { value: '', messages: [] };
+    });
+    this.state = obj;
     this.handleSubmit = this.handleSubmit.bind(this);
     this.handleChange = this.handleChange.bind(this);
   }
@@ -50,19 +47,32 @@ class Register extends React.Component {
   handleSubmit(event) {
     event.preventDefault();
     if (
-      Object.keys(this.state).some(
+      Object.keys(rules).some(
         key => !this.state[key].value || this.state[key].messages.length > 0
       )
     )
       return;
     const bitArray = sjcl.hash.sha256.hash(this.state.password.value);
-    console.log({
+    const payload = {
       first_name: this.state.first_name.value,
       last_name: this.state.last_name.value,
       username: this.state.username.value,
       email: this.state.email.value,
       password: sjcl.codec.hex.fromBits(bitArray)
-    });
+    };
+    fetch('/api/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+      .then(response => {
+        response.json().then(json => console.log(json));
+      })
+      .catch(err => {
+        console.error(err.message);
+      });
   }
 
   handleChange(event) {
@@ -168,7 +178,7 @@ class Register extends React.Component {
                 type="submit"
                 value="Let's go!"
                 disabled={
-                  Object.keys(this.state).some(
+                  Object.keys(rules).some(
                     key =>
                       !this.state[key].value ||
                       this.state[key].messages.length > 0
