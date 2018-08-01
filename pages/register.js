@@ -60,6 +60,7 @@ class Register extends React.Component {
       email: this.state.email.value,
       password: sjcl.codec.hex.fromBits(bitArray)
     };
+    this.setState({ noSubmit: true });
     fetch('/api/users', {
       method: 'POST',
       headers: {
@@ -67,12 +68,21 @@ class Register extends React.Component {
       },
       body: JSON.stringify(payload)
     })
-      .then(response => {
-        response.json().then(json => console.log(json));
+      .then(async response => {
+        const contentType = response.headers.get('Content-Type').split(' ')[0];
+        if (response.status === 200) {
+          response.text().then(text => {
+            this.setState({ redirectUser: { url: '/', delay: 5000, message: text } });
+          })
+        }
+        else if (contentType === 'application/json;')
+          response.json().then(json => {
+            if (!json.fieldName) return console.error(json.error)
+            const clone = this.state[json.fieldName].messages;
+            if (!clone.includes(json.error)) clone.push(json.error)
+            this.setState({ [json.fieldName]: { ...this.state[json.fieldName], messages: clone }, noSubmit: false })
+          })
       })
-      .catch(err => {
-        console.error(err.message);
-      });
   }
 
   handleChange(event) {
@@ -173,20 +183,24 @@ class Register extends React.Component {
                   messages={this.state.confirm_pwd.messages}
                 />
               </div>
-              <input
-                className="button is-info"
-                type="submit"
-                value="Let's go!"
-                disabled={
-                  Object.keys(rules).some(
-                    key =>
-                      !this.state[key].value ||
-                      this.state[key].messages.length > 0
-                  )
-                    ? true
-                    : null
-                }
-              />
+              {this.state.redirectUser ?
+                <div style={{ padding: '0.375rem .75rem' }} className="notification is-success">
+                  {this.state.redirectUser.message}
+                  {/* Use delay to redirect here */}
+                </div> : <input
+                  className="button is-info"
+                  type="submit"
+                  value="Let's go!"
+                  disabled={
+                    Object.keys(rules).some(
+                      key =>
+                        !this.state[key].value ||
+                        this.state[key].messages.length > 0
+                    ) || this.state.noSubmit
+                      ? true
+                      : null
+                  }
+                />}
             </form>
             <hr style={{ margin: '0.75rem 0' }} />
             <div style={{ textAlign: 'right' }}>

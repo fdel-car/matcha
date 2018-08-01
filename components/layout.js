@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import '../static/style.scss';
+import '../static/scss/style.scss';
 
 const Layout = props => (
   <section className={'section' + (props.anon ? ' anon-layout' : '')}>
@@ -13,7 +13,7 @@ const Layout = props => (
         integrity="sha384-lKuwvrZot6UHsBSfcMvOkWwlCMgc0TaWr+30HWe3a4ltaBwTZhyTEggF5tJv8tbt"
         crossOrigin="anonymous"
       />
-      <link rel="stylesheet" href="/static/css/bulma.min.css" />
+      <link rel="stylesheet" href="/static/bulma/bulma.min.css" />
       <link rel="stylesheet" href="/_next/static/style.css" />
     </Head>
     {props.children}

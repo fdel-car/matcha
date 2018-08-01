@@ -9,8 +9,14 @@ body,
   height: 100%;
   background-color: whitesmoke;
   .card {
-    width: 60%;
+    width: 100%;
     margin: auto;
+  }
+}
+
+@media (min-width: 769px) {
+  .anon-layout .card {
+    width: 60%;
   }
 }
 
