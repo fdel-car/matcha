@@ -10,7 +10,7 @@
     "start": "NODE_ENV=production node server.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "fdel-car",
   "license": "ISC",
   "dependencies": {
     "@zeit/next-sass": "^0.2.0",

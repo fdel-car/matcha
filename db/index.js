@@ -17,7 +17,7 @@ module.exports = {
       `executed. ${'Duration'.italic}:`,
       duration > 100 ? `${duration} ms`.red.bold : `${duration} ms`.green.bold,
       `${'Rows'.italic}: ${
-        (res.rowCount !== null ? res.rowCount.toString() : 'N/A').bold
+        (res.rowCount != null ? res.rowCount.toString() : 'N/A').bold
       }`
     );
     return res;

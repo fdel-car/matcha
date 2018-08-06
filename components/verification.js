@@ -1,3 +1,8 @@
+// Function available here: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+}
+
 const checkName = name => {
   let messages = [];
   const regex = /^[a-zA-Z \-]+$/;
@@ -26,7 +31,7 @@ const checkEmail = email => {
 
 const checkPassword = list => password => {
   let messages = [];
-  const regex = new RegExp(`^${password}$`, 'm');
+  const regex = new RegExp(`^${escapeRegExp(password)}$`, 'm');
   if (list && regex.test(list))
     messages.push(
       "This password has been breached multiple times, you shouldn't use it anymore."

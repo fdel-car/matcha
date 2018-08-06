@@ -18,7 +18,6 @@ router.post('/users', async (req, res) => {
     res.sendStatus(200);
   } catch (err) {
     // For now it only get the first error, I want them all
-    console.error(err);
     if (err.code == 23505) {
       const fieldName = (err.detail.match(/Key \(([a-z,_]*?)\)=/) || [])[1];
       error = `This ${fieldName} is already taken.`;
