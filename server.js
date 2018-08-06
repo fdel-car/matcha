@@ -29,6 +29,7 @@ app
     });
 
     server.get('*', (req, res) => {
+      // Use session based authentification (uuid, express-session...). See how to do that properly with Next.js
       return handle(req, res);
     });
 
