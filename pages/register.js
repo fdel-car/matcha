@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Layout from '../components/layout';
 import Field from '../components/field';
+import RedirectDelayed from '../components/redirect_delayed';
 import {
   checkName,
   checkUsername,
@@ -67,22 +68,28 @@ class Register extends React.Component {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
-    })
-      .then(async response => {
-        const contentType = response.headers.get('Content-Type').split(' ')[0];
-        if (response.status === 200) {
-          response.text().then(text => {
-            this.setState({ redirectUser: { url: '/', delay: 5000, message: text } });
-          })
-        }
-        else if (contentType === 'application/json;')
-          response.json().then(json => {
-            if (!json.fieldName) return console.error(json.error)
-            const clone = this.state[json.fieldName].messages;
-            if (!clone.includes(json.error)) clone.push(json.error)
-            this.setState({ [json.fieldName]: { ...this.state[json.fieldName], messages: clone }, noSubmit: false })
-          })
-      })
+    }).then(async response => {
+      const contentType = response.headers.get('Content-Type').split(' ')[0];
+      if (response.status === 200) {
+        response.text().then(text => {
+          this.setState({
+            redirectUser: { url: '/', delay: 5000, message: text }
+          });
+        });
+      } else if (contentType === 'application/json;')
+        response.json().then(json => {
+          if (!json.fieldName) return console.error(json.error);
+          const clone = this.state[json.fieldName].messages;
+          if (!clone.includes(json.error)) clone.push(json.error);
+          this.setState({
+            [json.fieldName]: {
+              ...this.state[json.fieldName],
+              messages: clone
+            },
+            noSubmit: false
+          });
+        });
+    });
   }
 
   handleChange(event) {
@@ -183,11 +190,19 @@ class Register extends React.Component {
                   messages={this.state.confirm_pwd.messages}
                 />
               </div>
-              {this.state.redirectUser ?
-                <div style={{ padding: '0.375rem .75rem' }} className="notification is-success">
+              {this.state.redirectUser ? (
+                <div
+                  style={{ padding: '0.375rem .75rem' }}
+                  className="notification is-success"
+                >
                   {this.state.redirectUser.message}
-                  {/* Use delay to redirect here */}
-                </div> : <input
+                  <RedirectDelayed
+                    delay={this.state.redirectUser.delay}
+                    url={this.state.redirectUser.url}
+                  />
+                </div>
+              ) : (
+                <input
                   className="button is-info"
                   type="submit"
                   value="Let's go!"
@@ -200,7 +215,8 @@ class Register extends React.Component {
                       ? true
                       : null
                   }
-                />}
+                />
+              )}
             </form>
             <hr style={{ margin: '0.75rem 0' }} />
             <div style={{ textAlign: 'right' }}>
