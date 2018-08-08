@@ -1,23 +1,19 @@
+@import '../../node_modules/bulma/bulma.sass';
+// If needed I can overwrite some bulma presets, check this page https://bulma.io/documentation/customize/
+
 html,
 body,
 #__next {
-  height: 100%;
+  height: 100vh;
   overflow-y: auto;
 }
 
 .anon-layout {
-  height: 100%;
+  height: 100vh;
   background-color: whitesmoke;
-  .card {
-    width: 100%;
-    margin: auto;
-  }
-}
-
-@media (min-width: 769px) {
-  .anon-layout .card {
-    width: 60%;
-  }
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .fields {

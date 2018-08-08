@@ -81,12 +81,14 @@ class Register extends React.Component {
           if (!json.fieldName) return console.error(json.error);
           const clone = this.state[json.fieldName].messages;
           if (!clone.includes(json.error)) clone.push(json.error);
-          this.setState({
-            [json.fieldName]: {
-              ...this.state[json.fieldName],
-              messages: clone
-            },
-            noSubmit: false
+          this.setState(prevState => {
+            return {
+              [json.fieldName]: {
+                ...prevState[json.fieldName],
+                messages: clone
+              },
+              noSubmit: false
+            };
           });
         });
     });
@@ -101,12 +103,15 @@ class Register extends React.Component {
         messages = rules[target.name](this.state.password.value)(target.value);
       else if (target.name === 'password') {
         messages = rules[target.name](this.state.list)(target.value);
-        const confirm_pwd = this.state.confirm_pwd;
-        this.setState({
-          confirm_pwd: {
-            ...confirm_pwd,
-            messages: rules['confirm_pwd'](target.value)(confirm_pwd.value)
-          }
+        this.setState(prevState => {
+          return {
+            confirm_pwd: {
+              ...prevState.confirm_pwd,
+              messages: rules['confirm_pwd'](target.value)(
+                prevState.confirm_pwd.value
+              )
+            }
+          };
         });
       } else messages = rules[target.name](target.value);
     }
@@ -205,7 +210,7 @@ class Register extends React.Component {
                 <input
                   className="button is-info"
                   type="submit"
-                  value="Let's go!"
+                  value="Sign up!"
                   disabled={
                     Object.keys(rules).some(
                       key =>

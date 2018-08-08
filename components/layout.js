@@ -13,7 +13,6 @@ const Layout = props => (
         integrity="sha384-lKuwvrZot6UHsBSfcMvOkWwlCMgc0TaWr+30HWe3a4ltaBwTZhyTEggF5tJv8tbt"
         crossOrigin="anonymous"
       />
-      <link rel="stylesheet" href="/static/bulma/bulma.min.css" />
       <link rel="stylesheet" href="/_next/static/style.css" />
     </Head>
     {props.children}

@@ -10,9 +10,29 @@ router.post('/users', (req, res) => {
   bcrypt.hash(password, 12, async function(err, hash) {
     if (err) throw err;
     try {
+      const nodemailer = require('nodemailer');
+      const uuidv4 = require('uuid/v4');
+      let transporter = nodemailer.createTransport({
+        sendmail: true
+      });
+      const token = uuidv4();
       await db.query(
-        'INSERT INTO schema.users (id, username, first_name, last_name, email, password) VALUES (DEFAULT, $1, $2, $3, $4, $5)',
-        [username, first_name, last_name, email, hash]
+        'INSERT INTO schema.users (id, username, first_name, last_name, email, password, verifyToken) VALUES (DEFAULT, $1, $2, $3, $4, $5, $6)',
+        [username, first_name, last_name, email, hash, token]
+      );
+      transporter.sendMail(
+        {
+          from: 'matcha@42.fr',
+          to: email,
+          subject: 'Verify your account ',
+          html: `Click <a href="${req.protocol}://${req.get(
+            'Host'
+          )}/verify?email=${email}&token=${token}">here</a> to verify your account.` // Need to url encode the email
+        },
+        (err, info) => {
+          if (err) console.error(err.message);
+          console.log(info.envelope);
+        }
       );
       res
         .status(200)
