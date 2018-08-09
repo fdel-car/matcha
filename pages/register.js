@@ -22,7 +22,7 @@ const rules = {
 
 class Register extends React.Component {
   static async getInitialProps({ req }) {
-    const baseUrl = req ? `${req.protocol}://${req.get('Host')}` : '';
+    const baseUrl = req ? `${req.protocol}://${'localhost:3000'/* req.get('Host') */}` : ''; // See 'Host header attack'
     return { baseUrl };
   }
 
@@ -39,10 +39,10 @@ class Register extends React.Component {
 
   async componentDidMount() {
     console.log('Password list is loading...');
-    const response = await fetch(this.props.baseUrl + '/breached');
+    const response = await fetch(this.props.baseUrl + '/file/breached.txt');
     const list = await response.text();
-    console.log('File loaded and stored.');
     this.setState({ list });
+    console.log('File loaded and stored.');
   }
 
   handleSubmit(event) {
@@ -207,21 +207,21 @@ class Register extends React.Component {
                   />
                 </div>
               ) : (
-                <input
-                  className="button is-info"
-                  type="submit"
-                  value="Sign up!"
-                  disabled={
-                    Object.keys(rules).some(
-                      key =>
-                        !this.state[key].value ||
-                        this.state[key].messages.length > 0
-                    ) || this.state.noSubmit
-                      ? true
-                      : null
-                  }
-                />
-              )}
+                  <input
+                    className="button is-info"
+                    type="submit"
+                    value="Sign up!"
+                    disabled={
+                      Object.keys(rules).some(
+                        key =>
+                          !this.state[key].value ||
+                          this.state[key].messages.length > 0
+                      ) || this.state.noSubmit
+                        ? true
+                        : null
+                    }
+                  />
+                )}
             </form>
             <hr style={{ margin: '0.75rem 0' }} />
             <div style={{ textAlign: 'right' }}>

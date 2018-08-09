@@ -1,0 +1,51 @@
+$green: rgb(46, 150, 40);
+$red: rgb(180, 10, 10);
+
+@import '../../node_modules/bulma/bulma.sass';
+// If needed I can overwrite some bulma presets, check this page https://bulma.io/documentation/customize/
+
+html,
+body,
+#__next {
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.anon-layout {
+  height: 100vh;
+  background-color: whitesmoke;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  .card {
+    min-width: 50%;
+  }
+}
+
+@media (min-width: 769px) {
+  .anon-layout .card {
+    width: 60%;
+  }
+}
+
+.fields {
+  margin-bottom: 0.75rem;
+}
+
+.bordered-notification {
+  margin-top: 0.75rem;
+  &:not(:last-child) {
+    margin-bottom: 0.75rem;
+  }
+  padding-left: 0.5rem;
+  border-left: 0.2rem solid;
+  &.is-success {
+    border-color: $success;
+  }
+  &.is-warning {
+    border-color: $warning;
+  }
+  &.is-danger {
+    border-color: $danger;
+  }
+}

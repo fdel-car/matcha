@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import '../static/scss/style.scss';
+import '../public/scss/style.scss';
 
 const Layout = props => (
   <section className={'section' + (props.anon ? ' anon-layout' : '')}>
@@ -7,6 +7,9 @@ const Layout = props => (
       <meta charSet="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <title>Matcha</title>
+      <link rel="icon"
+        type="image/png"
+        href="/file/logo.png" />
       <link
         rel="stylesheet"
         href="https://use.fontawesome.com/releases/v5.1.0/css/all.css"

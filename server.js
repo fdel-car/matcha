@@ -14,22 +14,27 @@ app
     const server = express();
     server.use(bodyParser.json());
     server.use(bodyParser.urlencoded({ extended: true }));
-
     server.use('/api', apiEndpoints);
 
-    server.get('/breached', (req, res) => {
-      fs.readFile('breached.txt', (err, data) => {
-        if (err) {
-          console.error(err.message);
-          res.sendStatus(404);
+    const imgExtensions = ['.gif', '.png', '.jpg', '.jpeg', '.ico'];
+    server.get('/file/:name', function(req, res, next) {
+      const fileName = req.params.name;
+      const options = {
+        root: __dirname + `/public/${imgExtensions.some(ext => fileName.endsWith(ext)) ? 'img/' : 'other/'}`,
+        dotfiles: 'deny',
+        headers: {
+          'x-timestamp': Date.now(),
+          'x-sent': true
         }
-        res.setHeader('content-type', 'text/plain');
-        res.status(200).send(data);
+      };
+      res.sendFile(fileName, options, function(err) {
+        if (err) {
+          next(err);
+        }
       });
     });
 
     server.get('*', (req, res) => {
-      // Use session based authentification (uuid, express-session...). See how to do that properly with Next.js
       return handle(req, res);
     });
 

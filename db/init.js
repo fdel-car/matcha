@@ -13,7 +13,7 @@ last_name varchar(32),\
 email varchar(64) UNIQUE,\
 password varchar,\
 verified boolean DEFAULT FALSE,\
-verifyToken varchar)'
+verify_token varchar)'
     );
     await db.close();
   }); // Create db if it does not exist yet, otherwise silently fail
