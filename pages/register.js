@@ -2,13 +2,13 @@ import Link from 'next/link';
 import Layout from '../components/layout';
 import Field from '../components/field';
 import RedirectDelayed from '../components/redirect_delayed';
-import {
+const {
   checkName,
   checkUsername,
   checkEmail,
   checkPassword,
   confirmPassword
-} from '../components/verification';
+} = require('../components/verification');
 const sjcl = require('../sjcl');
 
 const rules = {
@@ -73,7 +73,7 @@ class Register extends React.Component {
       if (response.status === 200) {
         response.text().then(text => {
           this.setState({
-            redirectUser: { url: '/', delay: 5000, message: text }
+            redirectUser: { url: '/login', delay: 10000, message: text }
           });
         });
       } else if (contentType === 'application/json;')
@@ -200,7 +200,7 @@ class Register extends React.Component {
                   style={{ padding: '0.375rem .75rem' }}
                   className="notification is-success"
                 >
-                  {this.state.redirectUser.message}
+                  <p>{this.state.redirectUser.message}</p>
                   <RedirectDelayed
                     delay={this.state.redirectUser.delay}
                     url={this.state.redirectUser.url}

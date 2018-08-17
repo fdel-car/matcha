@@ -1,6 +1,5 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const fs = require('fs');
 const next = require('next');
 
 const dev = process.env.NODE_ENV !== 'production';

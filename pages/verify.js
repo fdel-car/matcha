@@ -3,6 +3,17 @@ import Layout from '../components/layout';
 import RedirectDelayed from '../components/redirect_delayed';
 import fetch from 'isomorphic-fetch';
 
+const assignClass = (statusCode) => {
+  switch (statusCode) {
+    case 200:
+      return 'is-success';
+    case 403:
+      return 'is-warning';
+    default:
+      return 'is-danger';
+  }
+}
+
 class Verify extends React.Component {
   static async getInitialProps({ req, query }) {
     if (!query || !query.email || !query.token) return {};
@@ -14,11 +25,10 @@ class Verify extends React.Component {
       },
       body: JSON.stringify(query)
     })
-    if (res.status === 200) return { emailVerified: true, class: 'is-success' };
-    if (res.status === 403) return { emailVerified: false, class: 'is-warning' };
-    if (res.status === 400) {
+    if (res.status === 200) return { statusCode: res.status };
+    if (res.status === 400 || res.status === 403) {
       const json = await res.json();
-      return { emailVerified: false, error: json.error }
+      return { error: json.error, statusCode: res.status, email: query.email }
     }
     return {} // error 500 in this case, check server logs
   }
@@ -28,9 +38,23 @@ class Verify extends React.Component {
     this.state = {};
   }
 
-  render() {
-    console.log(this.props)
+  async sendEmail(e) {
+    e.preventDefault();
+    const res = await fetch('/api/verify/resend_email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email: this.props.email })
+    })
+    if (res.status === 200) this.setState({ emailSentAgain: true })
+    if (res.status === 400 || res.status === 403) {
+      const json = await res.json();
+      console.error(json);
+    } // else error 500, check server logs
+  }
 
+  render() {
     return (
       <Layout anon={true}>
         <div className="card">
@@ -40,18 +64,26 @@ class Verify extends React.Component {
                 <img src="/file/logo.gif" />
               </figure>
               <div>
-                <h1 className="title is-4">Hi there ✋</h1>
-                <h1 className="subtitle is-6">
-                  {this.props.emailVerified ?
-                    <span>Email verified! <i class="fas fa-check"></i> </span> : <span>
-                      Failed to verify the email... <i style={{ verticalAlign: 'text-bottom' }} class="fas fa-times"></i>
-                    </span>}
+                <h1 className="title">Hey there 👋</h1>
+                <h1 className="subtitle">
+                  {this.props.statusCode === 200 ?
+                    <span>Your email address is now verified! <i className="fas fa-check"></i> </span> : <span>We could not verify this email...</span>}
                 </h1>
               </div>
             </div>
-            <div className={`bordered-notification ${this.props.class || 'is-danger'}`}>
-              {/* Use the props to choose the correct message to display */}
-              {this.props.emailVerified.toString()}
+            {/* Add a display when nothing is in the url, AKA no props */}
+            <div className={`bordered-notification ${assignClass(this.props.statusCode)}`}>
+              {this.props.statusCode === 200 ?
+                <div>
+                  <p>It's all good, you are ready to go. You can now <Link href="/login"><a>login here</a></Link> without any further step.</p>
+                  <RedirectDelayed
+                    delay={10000}
+                    url={'/login'}
+                  />
+                </div> : <p>{this.props.error}<br />{this.props.error.includes('invalid') ?
+                  this.state.emailSentAgain ? <span>Another email with a new token has been sent to {this.props.email}</span>
+                    : <span>If you feel the need to, you can <a onClick={this.sendEmail.bind(this)}>resend the confirmation email.</a> But be sure to check your spam folder first!</span>
+                  : <span>You can try to <Link href="/login"><a>login here</a></Link>.</span>}</p>}
             </div>
           </div>
         </div>
