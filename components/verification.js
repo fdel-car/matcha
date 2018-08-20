@@ -3,6 +3,7 @@ function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
 }
 
+// Accept char with accents, don't forget
 const checkName = name => {
   let messages = [];
   const regex = /^[a-zA-Z \-]+$/;

@@ -1,7 +1,7 @@
 {
   "name": "matcha",
   "version": "1.0.0",
-  "description": "Parce que l’amour aussi, ca s’industrialise.",
+  "description": "Parce que l’amour aussi, ça s’industrialise.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

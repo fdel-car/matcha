@@ -3,6 +3,10 @@ const router = express.Router();
 const db = require('../db/index');
 const bcrypt = require('bcrypt');
 const validateInput = require('./validate_input');
+const jwt = require('jsonwebtoken');
+
+const generateJWT = (user) => jwt.sign({ uid: user.id, username: user.username, email: user.email }, 'secret', { expiresIn: '1h' })
+const verifyJWT = (token) => jwt.verify(token, 'secret')
 
 function generateToken() {
   const nodemailer = require('nodemailer');
@@ -30,6 +34,29 @@ function sendMail(transporter, req, email, token) {
   );
 }
 
+router.post('/authentification', async (req, res, next) => {
+  try {
+    if (!req.body)
+      return res.status(400).json({ error: 'No body passed to make the call.' });
+    const { username, password } = req.body;
+    const messages = validateInput({ username, password });
+    if (messages.length > 0) return res.status(400).json({ error: messages.join(' ') });
+    const user = await db.query(
+      'SELECT password, id, email FROM schema.users WHERE username = ($1)', [username]
+    );
+    if (!user.rows[0]) return res.status(400).json({ error: 'This username does not exist.' })
+    const hash = user.rows[0].password;
+    const isValid = await bcrypt.compare(password, hash);
+    if (isValid) {
+      return res.status(200).json({ jwt: generateJWT(user.rows[0]) });;
+    } else {
+      return res.status(401).json({ error: 'Invalid password provided.' });
+    }
+  } catch (err) {
+    next(err);
+  }
+})
+
 router.post('/verify', async (req, res, next) => {
   try {
     if (!req.body)
@@ -49,7 +76,7 @@ router.post('/verify', async (req, res, next) => {
       );
       return res.sendStatus(200);
     }
-    return res.status(403).json({ error: 'This token is outdated and / or invalid.' })
+    return res.status(403).json({ error: 'This token is outdated and / or invalid.', shouldAskForEmail: true })
   } catch (err) {
     next(err)
   }
@@ -83,9 +110,7 @@ router.post('/users', (req, res, next) => {
   if (!req.body)
     return res.status(400).json({ error: 'No body passed to make the call.' });
   const { username, first_name, last_name, email, password } = req.body;
-
   const messages = validateInput({ username, first_name, last_name, email, password });
-
   if (messages.length > 0) return res.status(400).json({ error: messages.join(' ') });
   bcrypt.hash(password, 12, async function(err, hash) {
     if (err) next(err);

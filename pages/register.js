@@ -47,12 +47,7 @@ class Register extends React.Component {
 
   handleSubmit(event) {
     event.preventDefault();
-    if (
-      Object.keys(rules).some(
-        key => !this.state[key].value || this.state[key].messages.length > 0
-      )
-    )
-      return;
+    if (Object.keys(rules).some(key => !this.state[key].value || this.state[key].messages.length > 0)) return;
     const bitArray = sjcl.hash.sha256.hash(this.state.password.value);
     const payload = {
       first_name: this.state.first_name.value,
@@ -71,26 +66,22 @@ class Register extends React.Component {
     }).then(async response => {
       const contentType = response.headers.get('Content-Type').split(' ')[0];
       if (response.status === 200) {
-        response.text().then(text => {
-          this.setState({
-            redirectUser: { url: '/login', delay: 10000, message: text }
-          });
+        const message = await response.text()
+        this.setState({
+          redirectUser: { url: '/login', delay: 10000, message }
         });
-      } else if (contentType === 'application/json;')
-        response.json().then(json => {
-          if (!json.fieldName) return console.error(json.error);
-          const clone = this.state[json.fieldName].messages;
-          if (!clone.includes(json.error)) clone.push(json.error);
-          this.setState(prevState => {
-            return {
-              [json.fieldName]: {
-                ...prevState[json.fieldName],
-                messages: clone
-              },
-              noSubmit: false
-            };
-          });
+      } else if (contentType === 'application/json;') {
+        const json = await response.json();
+        if (!json.fieldName) return console.error(json.error);
+        const clone = this.state[json.fieldName].messages;
+        if (!clone.includes(json.error)) clone.push(json.error);
+        this.setState(prevState => {
+          return {
+            [json.fieldName]: { ...prevState[json.fieldName], messages: clone },
+            noSubmit: false
+          };
         });
+      }
     });
   }
 
@@ -106,8 +97,7 @@ class Register extends React.Component {
         this.setState(prevState => {
           return {
             confirm_pwd: {
-              ...prevState.confirm_pwd,
-              messages: rules['confirm_pwd'](target.value)(
+              ...prevState.confirm_pwd, messages: rules['confirm_pwd'](target.value)(
                 prevState.confirm_pwd.value
               )
             }
@@ -115,9 +105,7 @@ class Register extends React.Component {
         });
       } else messages = rules[target.name](target.value);
     }
-    this.setState({
-      [target.name]: { value: target.value, messages }
-    });
+    this.setState({ [target.name]: { value: target.value, messages } });
   }
 
   render() {
@@ -129,7 +117,7 @@ class Register extends React.Component {
               <p className="subtitle" style={{ textAlign: 'center' }}>
                 Create your account
                 <br />
-                <small>Don't drink your green tea alone anymore.</small>
+                <small>It's your time to shine.</small>
               </p>
               <div className="fields">
                 <div className="field is-horizontal">
@@ -226,7 +214,7 @@ class Register extends React.Component {
             <hr style={{ margin: '0.75rem 0' }} />
             <div style={{ textAlign: 'right' }}>
               Already got an account?{' '}
-              <Link href="/">
+              <Link href="/login">
                 <a>Login here.</a>
               </Link>
             </div>
