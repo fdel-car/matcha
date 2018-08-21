@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import Layout from '../components/layout';
+import withLayout from '../components/layout';
 import Field from '../components/field';
 import RedirectDelayed from '../components/redirect_delayed';
 const {
@@ -40,9 +40,15 @@ class Register extends React.Component {
   async componentDidMount() {
     console.log('Password list is loading...');
     const response = await fetch(this.props.baseUrl + '/file/breached.txt');
+    if (this.isUnmounted) return console.log('Fetch of the list aborted.');
     const list = await response.text();
+    if (this.isUnmounted) return console.log('Fetch of the list aborted.');
     this.setState({ list });
     console.log('File loaded and stored.');
+  }
+
+  componentWillUnmount() {
+    this.isUnmounted = true;
   }
 
   handleSubmit(event) {
@@ -57,7 +63,7 @@ class Register extends React.Component {
       password: sjcl.codec.hex.fromBits(bitArray)
     };
     this.setState({ noSubmit: true });
-    fetch('/api/users', {
+    fetch('/api/user', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -68,7 +74,7 @@ class Register extends React.Component {
       if (response.status === 200) {
         const message = await response.text()
         this.setState({
-          redirectUser: { url: '/login', delay: 10000, message }
+          redirectUser: { url: '/login', delay: 5000, message }
         });
       } else if (contentType === 'application/json;') {
         const json = await response.json();
@@ -109,120 +115,119 @@ class Register extends React.Component {
   }
 
   render() {
+    if (this.props.user) return null;
     return (
-      <Layout anon={true}>
-        <div className="card">
-          <div className="card-content">
-            <form onSubmit={this.handleSubmit}>
-              <p className="subtitle" style={{ textAlign: 'center' }}>
-                Create your account
+      <div className="card">
+        <div className="card-content">
+          <form onSubmit={this.handleSubmit}>
+            <p className="subtitle" style={{ textAlign: 'center' }}>
+              Create your account
                 <br />
-                <small>It's your time to shine.</small>
-              </p>
-              <div className="fields">
-                <div className="field is-horizontal">
-                  <div className="field-body">
-                    <Field
-                      placeholder="e.g. Caroline"
-                      label="First Name"
-                      type="text"
-                      name="first_name"
-                      onChange={this.handleChange}
-                      value={this.state.first_name.value}
-                      messages={this.state.first_name.messages}
-                    />
-                    <Field
-                      placeholder="e.g. Gilbert"
-                      label="Last Name"
-                      type="text"
-                      name="last_name"
-                      onChange={this.handleChange}
-                      value={this.state.last_name.value}
-                      messages={this.state.last_name.messages}
-                    />
-                  </div>
+              <small>It's your time to shine.</small>
+            </p>
+            <div className="fields">
+              <div className="field is-horizontal">
+                <div className="field-body">
+                  <Field
+                    placeholder="e.g. Caroline"
+                    label="First Name"
+                    type="text"
+                    name="first_name"
+                    onChange={this.handleChange}
+                    value={this.state.first_name.value}
+                    messages={this.state.first_name.messages}
+                  />
+                  <Field
+                    placeholder="e.g. Gilbert"
+                    label="Last Name"
+                    type="text"
+                    name="last_name"
+                    onChange={this.handleChange}
+                    value={this.state.last_name.value}
+                    messages={this.state.last_name.messages}
+                  />
                 </div>
-                <Field
-                  iconLeft="user"
-                  placeholder="e.g. cgilbert"
-                  label="Username"
-                  name="username"
-                  type="text"
-                  onChange={this.handleChange}
-                  value={this.state.username.value}
-                  messages={this.state.username.messages}
-                />
-                <Field
-                  iconLeft="envelope"
-                  placeholder="e.g. caroline.gilbert@example.com"
-                  label="Email"
-                  name="email"
-                  type="email"
-                  onChange={this.handleChange}
-                  value={this.state.email.value}
-                  messages={this.state.email.messages}
-                />
-                <Field
-                  iconLeft="lock"
-                  placeholder="e.g. 2YtGAbO7qXnvFjX2"
-                  label="Password"
-                  name="password"
-                  type="password"
-                  onChange={this.handleChange}
-                  value={this.state.password.value}
-                  messages={this.state.password.messages}
-                />
-                <Field
-                  iconLeft="lock"
-                  placeholder="e.g. 2YtGAbO7qXnvFjX2"
-                  label="Confirm your password"
-                  name="confirm_pwd"
-                  type="password"
-                  onChange={this.handleChange}
-                  value={this.state.confirm_pwd.value}
-                  messages={this.state.confirm_pwd.messages}
+              </div>
+              <Field
+                iconLeft="user"
+                placeholder="e.g. cgilbert"
+                label="Username"
+                name="username"
+                type="text"
+                onChange={this.handleChange}
+                value={this.state.username.value}
+                messages={this.state.username.messages}
+              />
+              <Field
+                iconLeft="envelope"
+                placeholder="e.g. caroline.gilbert@example.com"
+                label="Email"
+                name="email"
+                type="email"
+                onChange={this.handleChange}
+                value={this.state.email.value}
+                messages={this.state.email.messages}
+              />
+              <Field
+                iconLeft="lock"
+                placeholder="e.g. 2YtGAbO7qXnvFjX2"
+                label="Password"
+                name="password"
+                type="password"
+                onChange={this.handleChange}
+                value={this.state.password.value}
+                messages={this.state.password.messages}
+              />
+              <Field
+                iconLeft="lock"
+                placeholder="e.g. 2YtGAbO7qXnvFjX2"
+                label="Confirm your password"
+                name="confirm_pwd"
+                type="password"
+                onChange={this.handleChange}
+                value={this.state.confirm_pwd.value}
+                messages={this.state.confirm_pwd.messages}
+              />
+            </div>
+            {this.state.redirectUser ? (
+              <div
+                style={{ padding: '0.375rem .75rem' }}
+                className="notification is-success"
+              >
+                <p>{this.state.redirectUser.message}</p>
+                <RedirectDelayed
+                  delay={this.state.redirectUser.delay}
+                  url={this.state.redirectUser.url}
                 />
               </div>
-              {this.state.redirectUser ? (
-                <div
-                  style={{ padding: '0.375rem .75rem' }}
-                  className="notification is-success"
-                >
-                  <p>{this.state.redirectUser.message}</p>
-                  <RedirectDelayed
-                    delay={this.state.redirectUser.delay}
-                    url={this.state.redirectUser.url}
-                  />
-                </div>
-              ) : (
-                  <input
-                    className="button is-info"
-                    type="submit"
-                    value="Sign up!"
-                    disabled={
-                      Object.keys(rules).some(
-                        key =>
-                          !this.state[key].value ||
-                          this.state[key].messages.length > 0
-                      ) || this.state.noSubmit
-                        ? true
-                        : null
-                    }
-                  />
-                )}
-            </form>
-            <hr style={{ margin: '0.75rem 0' }} />
-            <div style={{ textAlign: 'right' }}>
-              Already got an account?{' '}
-              <Link href="/login">
-                <a>Login here.</a>
-              </Link>
-            </div>
+            ) : (
+                <input
+                  className="button is-info"
+                  type="submit"
+                  value="Sign up!"
+                  disabled={
+                    Object.keys(rules).some(
+                      key =>
+                        !this.state[key].value ||
+                        this.state[key].messages.length > 0
+                    ) || this.state.noSubmit
+                      ? true
+                      : null
+                  }
+                />
+              )}
+          </form>
+          <hr style={{ margin: '0.75rem 0' }} />
+          <div style={{ textAlign: 'right' }}>
+            Already got an account?{' '}
+            <Link href="/login">
+              <a>Login here.</a>
+            </Link>
           </div>
         </div>
-      </Layout>
+      </div>
     );
   }
 }
 
-export default Register;
+export default withLayout(Register);

@@ -10,11 +10,11 @@ body,
 #__next {
   height: 100vh;
   overflow-y: auto;
+  background-color: whitesmoke;
 }
 
 .anon-layout {
   height: 100vh;
-  background-color: whitesmoke;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -48,5 +48,48 @@ body,
   }
   &.is-danger {
     border-color: $danger;
+  }
+}
+
+// The original spinner can be found here http://tobiasahlin.com/spinkit/
+.spinner {
+  margin: 100px auto;
+  width: 80px;
+  height: 80px;
+  position: relative;
+  text-align: center;
+  -webkit-animation: sk-rotate 1.0s infinite linear;
+  animation: sk-rotate 1.0s infinite linear;
+}
+.thief, .cop {
+  width: 60%;
+  height: 60%;
+  display: inline-block;
+  position: absolute;
+  top: 0;
+  background-color: #4a4a4a;
+  border-radius: 100%;
+  -webkit-animation: sk-bounce 1.0s infinite ease-in-out;
+  animation: sk-bounce 1.0s infinite ease-in-out;
+}
+.cop {
+  top: auto;
+  bottom: 0;
+  -webkit-animation-delay: -0.5s;
+  animation-delay: -0.5s;
+}
+@-webkit-keyframes sk-rotate { 100% { -webkit-transform: rotate(360deg) }}
+@keyframes sk-rotate { 100% { transform: rotate(360deg); -webkit-transform: rotate(360deg) }}
+@-webkit-keyframes sk-bounce {
+  0%, 100% { -webkit-transform: scale(0.2) }
+  50% { -webkit-transform: scale(0.8) }
+}
+@keyframes sk-bounce {
+  0%, 100% { 
+    transform: scale(0.2);
+    -webkit-transform: scale(0.2);
+  } 50% { 
+    transform: scale(0.8);
+    -webkit-transform: scale(0.8);
   }
 }

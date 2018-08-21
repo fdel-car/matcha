@@ -4,20 +4,17 @@ const db = require('../db/index');
 const bcrypt = require('bcrypt');
 const validateInput = require('./validate_input');
 const jwt = require('jsonwebtoken');
+const uuidv4 = require('uuid/v4');
 
-const generateJWT = (user) => jwt.sign({ uid: user.id, username: user.username, email: user.email }, 'secret', { expiresIn: '1h' })
-const verifyJWT = (token) => jwt.verify(token, 'secret')
-
+const generateJWT = (uid, xsrfToken) => jwt.sign({ uid, xsrfToken }, 'secret', { expiresIn: '1h' })
 function generateToken() {
   const nodemailer = require('nodemailer');
-  const uuidv4 = require('uuid/v4');
   const transporter = nodemailer.createTransport({
     sendmail: true
   });
   const token = uuidv4();
   return { transporter, token };
 }
-
 function sendMail(transporter, req, email, token) {
   transporter.sendMail(
     {
@@ -34,7 +31,7 @@ function sendMail(transporter, req, email, token) {
   );
 }
 
-router.post('/authentification', async (req, res, next) => {
+router.post('/login', async (req, res, next) => {
   try {
     if (!req.body)
       return res.status(400).json({ error: 'No body passed to make the call.' });
@@ -48,7 +45,9 @@ router.post('/authentification', async (req, res, next) => {
     const hash = user.rows[0].password;
     const isValid = await bcrypt.compare(password, hash);
     if (isValid) {
-      return res.status(200).json({ jwt: generateJWT(user.rows[0]) });;
+      const xsrfToken = uuidv4();
+      res.cookie('jwt', generateJWT(user.rows[0].id, xsrfToken), { httpOnly: true, maxAge: 3600000 });
+      res.status(200).json({ xsrfToken });
     } else {
       return res.status(401).json({ error: 'Invalid password provided.' });
     }
@@ -76,7 +75,7 @@ router.post('/verify', async (req, res, next) => {
       );
       return res.sendStatus(200);
     }
-    return res.status(403).json({ error: 'This token is outdated and / or invalid.', shouldAskForEmail: true })
+    return res.status(403).json({ error: 'This token is outdated and / or invalid.' })
   } catch (err) {
     next(err)
   }
@@ -106,7 +105,7 @@ router.post('/verify/resend_email', async (req, res, next) => {
   }
 })
 
-router.post('/users', (req, res, next) => {
+router.post('/user', (req, res, next) => {
   if (!req.body)
     return res.status(400).json({ error: 'No body passed to make the call.' });
   const { username, first_name, last_name, email, password } = req.body;
@@ -135,5 +134,22 @@ router.post('/users', (req, res, next) => {
     }
   });
 });
+
+router.get('/user/validate', function(req, res, next) {
+  const JWToken = req.cookies.jwt;
+  const xsrfToken = req.headers['x-xsrf-token'];
+  if (!JWToken || !xsrfToken) return res.sendStatus(401);
+  jwt.verify(JWToken, 'secret', async function(err, decoded) {
+    if (err) return res.sendStatus(401);
+    try {
+      if (decoded.xsrfToken !== xsrfToken) return res.sendStatus(401); // CSRF attack!
+      const user = await db.query('SELECT id, username, first_name, last_name, email, verified FROM schema.users WHERE id = ($1)', [decoded.uid]);
+      if (!user.rows[0]) return res.sendStatus(400) // Very unlikely
+      res.status(200).json({ ...user.rows[0] });
+    } catch (err) {
+      next(err);
+    }
+  })
+})
 
 module.exports = router;

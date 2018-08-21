@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import Layout from '../components/layout';
+import withLayout from '../components/layout';
 import Field from '../components/field';
 import Router from 'next/router';
 const {
@@ -7,8 +7,6 @@ const {
   checkPassword
 } = require('../components/verification');
 const sjcl = require('../sjcl');
-
-const fields = ['username', 'password'];
 
 const rules = {
   username: checkUsername,
@@ -36,8 +34,9 @@ class Login extends React.Component {
       password: sjcl.codec.hex.fromBits(bitArray)
     };
     this.setState({ noSubmit: true });
-    fetch('/api/authentification', {
+    fetch('/api/login', {
       method: 'POST',
+      credentials: 'same-origin',
       headers: {
         'Content-Type': 'application/json'
       },
@@ -47,7 +46,7 @@ class Login extends React.Component {
       if (contentType === 'application/json;') {
         const json = await response.json();
         if (response.status === 200) {
-          window.localStorage.jwt = json.jwt;
+          window.localStorage.xsrfToken = json.xsrfToken;
           Router.push('/');
         }
         else {
@@ -72,65 +71,64 @@ class Login extends React.Component {
   }
 
   render() {
+    if (this.props.user) return null;
     return (
-      <Layout anon={true}>
-        <div className="card">
-          <div className="card-content">
-            <form onSubmit={this.handleSubmit}>
-              <p className="subtitle" style={{ textAlign: 'center' }}>
-                Login to your account
+      <div className="card">
+        <div className="card-content">
+          <form onSubmit={this.handleSubmit}>
+            <p className="subtitle" style={{ textAlign: 'center' }}>
+              Login to your account
                 <br />
-                <small>What are you waiting for?</small>
-              </p>
-              <div className="fields">
-                <Field
-                  iconLeft="user"
-                  placeholder="e.g. cgilbert"
-                  label="Username"
-                  name="username"
-                  type="text"
-                  onChange={this.handleChange}
-                  value={this.state.username.value}
-                  messages={this.state.username.messages}
-                />
-                <Field
-                  iconLeft="lock"
-                  placeholder="e.g. 2YtGAbO7qXnvFjX2"
-                  label="Password"
-                  name="password"
-                  type="password"
-                  onChange={this.handleChange}
-                  value={this.state.password.value}
-                  messages={this.state.password.messages}
-                />
-              </div>
-              <input
-                className="button is-info"
-                type="submit"
-                value="Sign in"
-                disabled={
-                  Object.keys(rules).some(
-                    key =>
-                      !this.state[key].value ||
-                      this.state[key].messages.length > 0
-                  ) || this.state.noSubmit
-                    ? true
-                    : null
-                }
+              <small>What are you waiting for?</small>
+            </p>
+            <div className="fields">
+              <Field
+                iconLeft="user"
+                placeholder="e.g. cgilbert"
+                label="Username"
+                name="username"
+                type="text"
+                onChange={this.handleChange}
+                value={this.state.username.value}
+                messages={this.state.username.messages}
               />
-            </form>
-            <hr style={{ margin: '0.75rem 0' }} />
-            <div style={{ textAlign: 'right' }}>
-              Not registered already?{' '}
-              <Link href="/register">
-                <a>Do it here.</a>
-              </Link>
+              <Field
+                iconLeft="lock"
+                placeholder="e.g. 2YtGAbO7qXnvFjX2"
+                label="Password"
+                name="password"
+                type="password"
+                onChange={this.handleChange}
+                value={this.state.password.value}
+                messages={this.state.password.messages}
+              />
             </div>
+            <input
+              className="button is-info"
+              type="submit"
+              value="Sign in"
+              disabled={
+                Object.keys(rules).some(
+                  key =>
+                    !this.state[key].value ||
+                    this.state[key].messages.length > 0
+                ) || this.state.noSubmit
+                  ? true
+                  : null
+              }
+            />
+          </form>
+          <hr style={{ margin: '0.75rem 0' }} />
+          <div style={{ textAlign: 'right' }}>
+            Not registered already?{' '}
+            <Link href="/register">
+              <a>Do it here.</a>
+            </Link>
           </div>
         </div>
-      </Layout>
+      </div>
     );
   }
 }
 
-export default Login;
+export default withLayout(Login);

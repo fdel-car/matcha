@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import Layout from '../components/layout';
+import withLayout from '../components/layout';
 import RedirectDelayed from '../components/redirect_delayed';
 import fetch from 'isomorphic-fetch';
 
@@ -16,16 +16,15 @@ const assignClass = (statusCode) => {
 
 const ResendEmailBox = (props) => (
   props.emailSentAgain
-    ? <span>Another email with a new token has been sent to {props.email}</span>
+    ? <span>Another email with a new token has been sent to {props.user.email}</span>
     : <span>If you feel the need to, you can <a onClick={props.sendEmail}>resend the confirmation email.</a>{' '}
       But be sure to check your spam folder first!</span>
 )
 
 class Verify extends React.Component {
   static async getInitialProps({ req, query }) {
-    const loggedIn = false;
     if (!query || !query.email || !query.token) return {
-      error: 'Without all query parameters in the url, this page won\'t be doing much.', email: loggedIn ? 'placeholder' : null
+      error: 'You received a link in your mailbox, it will allow us to verify your account.'
     };
     const baseUrl = req ? `${req.protocol}://${'localhost:3000'/* req.get('Host') */}` : ''; // See 'Host header attack'
     const res = await fetch(baseUrl + '/api/verify', {
@@ -38,7 +37,7 @@ class Verify extends React.Component {
     if (res.status === 200) return { statusCode: res.status };
     if (res.status === 400 || res.status === 403) {
       const json = await res.json();
-      return { error: json.error, statusCode: res.status, email: json.shouldAskForEmail ? query.email : null }
+      return { error: json.error, statusCode: res.status }
     }
     return { error: 'There seem to be an error coming from the server, we\'re on it!' } // error 500 in this case, check server logs
   }
@@ -55,7 +54,7 @@ class Verify extends React.Component {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ email: this.props.email })
+      body: JSON.stringify({ email: this.props.user.email })
     })
     if (res.status === 200) this.setState({ emailSentAgain: true })
     if (res.status === 400 || res.status === 403) {
@@ -65,41 +64,43 @@ class Verify extends React.Component {
   }
 
   render() {
+    if (this.props.user && this.props.user.verified && this.props.statusCode !== 200) return null;
     return (
-      <Layout anon={true}>
-        <div className="card">
-          <div className="card-content">
-            <div style={{ display: 'flex' }} >
-              <figure style={{ marginRight: '10px' }} className="image is-64x64">
-                <img src="/file/logo.gif" />
-              </figure>
-              <div>
-                <h1 className="title">Hey there 👋</h1>
-                <h1 className="subtitle">
-                  {this.props.statusCode === 200 ?
-                    <span>Your email address is now verified! <i className="fas fa-check"></i> </span> : <span>We could not verify this email...</span>}
-                </h1>
-              </div>
-            </div>
-            <div className={`bordered-notification ${assignClass(this.props.statusCode)}`}>
-              {this.props.statusCode === 200
-                ?
-                <div>
-                  <p>It's all good, you are ready to go. You can now <Link href="/login"><a>login here</a></Link> without any further step.</p>
-                  <RedirectDelayed
-                    delay={10000}
-                    url={'/login'}
-                  />
-                </div>
-                : <p>{this.props.error}<br />{this.props.email
-                  ? <ResendEmailBox email={this.props.email} emailSentAgain={this.state.emailSentAgain} sendEmail={this.sendEmail.bind(this)} />
-                  : <span>You can try to <Link href="/login"><a>login here</a></Link>.</span>}</p>}
+      <div className="card">
+        <div className="card-content">
+          <div style={{ display: 'flex' }} >
+            <figure style={{ marginRight: '10px' }} className="image is-64x64">
+              <img src="/file/logo.gif" />
+            </figure>
+            <div>
+              <h1 className="title">Hey there 👋</h1>
+              <h1 className="subtitle">
+                {this.props.statusCode === 200 ?
+                  <span>Your email address is now verified! <i className="fas fa-check"></i> </span> : <span>We could not verify this email...</span>}
+              </h1>
             </div>
           </div>
+          <div className={`bordered-notification ${assignClass(this.props.statusCode)}`}>
+            {this.props.statusCode === 200
+              ?
+              <div>
+                <p>It's all good, you are ready to go. {!this.props.user
+                  ? <span>You can now <Link href="/login"><a>login here</a></Link> without any further step.</span>
+                  : null}
+                </p>
+                <RedirectDelayed
+                  delay={5000}
+                  url={this.props.user ? '/' : '/login'}
+                />
+              </div>
+              : <p>{this.props.error}<br />{this.props.user && !this.props.user.verified
+                ? <ResendEmailBox email={this.props.email} emailSentAgain={this.state.emailSentAgain} sendEmail={this.sendEmail.bind(this)} />
+                : <span>You can try to <Link href="/login"><a>login here</a></Link>.</span>}</p>}
+          </div>
         </div>
-      </Layout>
+      </div>
     );
   }
 }
 
-export default Verify;
+export default withLayout(Verify);

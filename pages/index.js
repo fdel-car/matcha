@@ -1,13 +1,15 @@
 import Link from 'next/link';
-import Layout from '../components/layout';
+import withLayout from '../components/layout';
 
-const Index = () => (
-  <Layout>
-    <Link href="/register">
-      <a>Register Page</a>
-    </Link>
-    <p>You're supposed to be connected</p>
-  </Layout>
-);
+class Register extends React.Component {
+  render() {
+    return (
+      <div>
+        <p>Hi {this.props.user.username}</p>
+        <Link href="/"><a>Refresh</a></Link>
+      </div>
+    );
+  }
+}
 
-export default Index;
+export default withLayout(Register, true);
