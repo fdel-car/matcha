@@ -1,6 +1,7 @@
 $green: rgb(52, 168, 46);
-$red: rgb(224, 64, 64);
 $yellow: rgb(228, 194, 46);
+$red: rgb(224, 64, 64);
+// $primary: #fe003b; // brand-color 'comme des garcons'
 
 @import '../../node_modules/bulma/bulma.sass';
 // If needed I can overwrite some bulma presets, check this page https://bulma.io/documentation/customize/
@@ -8,13 +9,12 @@ $yellow: rgb(228, 194, 46);
 html,
 body,
 #__next {
-  height: 100vh;
+  height: 100%;
   overflow-y: auto;
-  background-color: whitesmoke;
 }
 
 .anon-layout {
-  height: 100vh;
+  height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -51,6 +51,10 @@ body,
   }
 }
 
+section.has-navbar-fixed-top {
+  margin-top: 3.25rem;
+}
+
 // The original spinner can be found here http://tobiasahlin.com/spinkit/
 .spinner {
   margin: 100px auto;
@@ -58,10 +62,11 @@ body,
   height: 80px;
   position: relative;
   text-align: center;
-  -webkit-animation: sk-rotate 1.0s infinite linear;
-  animation: sk-rotate 1.0s infinite linear;
+  -webkit-animation: sk-rotate 1s infinite linear;
+  animation: sk-rotate 1s infinite linear;
 }
-.thief, .cop {
+.thief,
+.cop {
   width: 60%;
   height: 60%;
   display: inline-block;
@@ -69,8 +74,8 @@ body,
   top: 0;
   background-color: #4a4a4a;
   border-radius: 100%;
-  -webkit-animation: sk-bounce 1.0s infinite ease-in-out;
-  animation: sk-bounce 1.0s infinite ease-in-out;
+  -webkit-animation: sk-bounce 1s infinite ease-in-out;
+  animation: sk-bounce 1s infinite ease-in-out;
 }
 .cop {
   top: auto;
@@ -78,17 +83,33 @@ body,
   -webkit-animation-delay: -0.5s;
   animation-delay: -0.5s;
 }
-@-webkit-keyframes sk-rotate { 100% { -webkit-transform: rotate(360deg) }}
-@keyframes sk-rotate { 100% { transform: rotate(360deg); -webkit-transform: rotate(360deg) }}
+@-webkit-keyframes sk-rotate {
+  100% {
+    -webkit-transform: rotate(360deg);
+  }
+}
+@keyframes sk-rotate {
+  100% {
+    transform: rotate(360deg);
+    -webkit-transform: rotate(360deg);
+  }
+}
 @-webkit-keyframes sk-bounce {
-  0%, 100% { -webkit-transform: scale(0.2) }
-  50% { -webkit-transform: scale(0.8) }
+  0%,
+  100% {
+    -webkit-transform: scale(0.2);
+  }
+  50% {
+    -webkit-transform: scale(0.8);
+  }
 }
 @keyframes sk-bounce {
-  0%, 100% { 
+  0%,
+  100% {
     transform: scale(0.2);
     -webkit-transform: scale(0.2);
-  } 50% { 
+  }
+  50% {
     transform: scale(0.8);
     -webkit-transform: scale(0.8);
   }

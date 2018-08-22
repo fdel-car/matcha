@@ -3,7 +3,7 @@ import withLayout from '../components/layout';
 import RedirectDelayed from '../components/redirect_delayed';
 import fetch from 'isomorphic-fetch';
 
-const assignClass = (statusCode) => {
+const assignClass = statusCode => {
   switch (statusCode) {
     case 200:
       return 'is-success';
@@ -12,34 +12,46 @@ const assignClass = (statusCode) => {
     default:
       return 'is-danger';
   }
-}
+};
 
-const ResendEmailBox = (props) => (
-  props.emailSentAgain
-    ? <span>Another email with a new token has been sent to {props.user.email}</span>
-    : <span>If you feel the need to, you can <a onClick={props.sendEmail}>resend the confirmation email.</a>{' '}
-      But be sure to check your spam folder first!</span>
-)
+const ResendEmailBox = props =>
+  props.emailSentAgain ? (
+    <span>
+      Another email with a new token has been sent to {props.user.email}
+    </span>
+  ) : (
+    <span>
+      If you feel the need to, you can{' '}
+      <a onClick={props.sendEmail}>resend the confirmation email.</a> But be
+      sure to check your spam folder first!
+    </span>
+  );
 
 class Verify extends React.Component {
   static async getInitialProps({ req, query }) {
-    if (!query || !query.email || !query.token) return {
-      error: 'You received a link in your mailbox, it will allow us to verify your account.'
-    };
-    const baseUrl = req ? `${req.protocol}://${'localhost:3000'/* req.get('Host') */}` : ''; // See 'Host header attack'
+    if (!query || !query.email || !query.token)
+      return {
+        error:
+          'You received a link in your mailbox, it will allow us to verify your account.'
+      };
+    const baseUrl = req
+      ? `${req.protocol}://${'localhost:3000' /* req.get('Host') */}`
+      : ''; // See 'Host header attack'
     const res = await fetch(baseUrl + '/api/verify', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(query)
-    })
+    });
     if (res.status === 200) return { statusCode: res.status };
     if (res.status === 400 || res.status === 403) {
       const json = await res.json();
-      return { error: json.error, statusCode: res.status }
+      return { error: json.error, statusCode: res.status };
     }
-    return { error: 'There seem to be an error coming from the server, we\'re on it!' } // error 500 in this case, check server logs
+    return {
+      error: "There seem to be an error coming from the server, we're on it!"
+    }; // error 500 in this case, check server logs
   }
 
   constructor(props) {
@@ -55,8 +67,8 @@ class Verify extends React.Component {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ email: this.props.user.email })
-    })
-    if (res.status === 200) this.setState({ emailSentAgain: true })
+    });
+    if (res.status === 200) this.setState({ emailSentAgain: true });
     if (res.status === 400 || res.status === 403) {
       const json = await res.json();
       console.error(json);
@@ -64,38 +76,77 @@ class Verify extends React.Component {
   }
 
   render() {
-    if (this.props.user && this.props.user.verified && this.props.statusCode !== 200) return null;
+    if (
+      this.props.user &&
+      this.props.user.verified &&
+      this.props.statusCode !== 200
+    )
+      return null;
     return (
       <div className="card">
         <div className="card-content">
-          <div style={{ display: 'flex' }} >
+          <div style={{ display: 'flex' }}>
             <figure style={{ marginRight: '10px' }} className="image is-64x64">
               <img src="/file/logo.gif" />
             </figure>
             <div>
               <h1 className="title">Hey there 👋</h1>
               <h1 className="subtitle">
-                {this.props.statusCode === 200 ?
-                  <span>Your email address is now verified! <i className="fas fa-check"></i> </span> : <span>We could not verify this email...</span>}
+                {this.props.statusCode === 200 ? (
+                  <>
+                    Your email address is now verified!{' '}
+                    <i className="fas fa-check" />{' '}
+                  </>
+                ) : (
+                  <>We could not verify this email...</>
+                )}
               </h1>
             </div>
           </div>
-          <div className={`bordered-notification ${assignClass(this.props.statusCode)}`}>
-            {this.props.statusCode === 200
-              ?
+          <div
+            className={`bordered-notification ${assignClass(
+              this.props.statusCode
+            )}`}
+          >
+            {this.props.statusCode === 200 ? (
               <div>
-                <p>It's all good, you are ready to go. {!this.props.user
-                  ? <span>You can now <Link href="/login"><a>login here</a></Link> without any further step.</span>
-                  : null}
+                <p>
+                  It's all good, you are ready to go.{' '}
+                  {!this.props.user ? (
+                    <>
+                      You can now{' '}
+                      <Link href="/login">
+                        <a>login here</a>
+                      </Link>{' '}
+                      without any further step.
+                    </>
+                  ) : null}
                 </p>
                 <RedirectDelayed
                   delay={5000}
                   url={this.props.user ? '/' : '/login'}
                 />
               </div>
-              : <p>{this.props.error}<br />{this.props.user && !this.props.user.verified
-                ? <ResendEmailBox email={this.props.email} emailSentAgain={this.state.emailSentAgain} sendEmail={this.sendEmail.bind(this)} />
-                : <span>You can try to <Link href="/login"><a>login here</a></Link>.</span>}</p>}
+            ) : (
+              <p>
+                {this.props.error}
+                <br />
+                {this.props.user && !this.props.user.verified ? (
+                  <ResendEmailBox
+                    email={this.props.email}
+                    emailSentAgain={this.state.emailSentAgain}
+                    sendEmail={this.sendEmail.bind(this)}
+                  />
+                ) : (
+                  <>
+                    You can try to{' '}
+                    <Link href="/login">
+                      <a>login here</a>
+                    </Link>.
+                  </>
+                )}
+              </p>
+            )}
           </div>
         </div>
       </div>

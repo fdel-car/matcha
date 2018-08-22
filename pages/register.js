@@ -22,7 +22,9 @@ const rules = {
 
 class Register extends React.Component {
   static async getInitialProps({ req }) {
-    const baseUrl = req ? `${req.protocol}://${'localhost:3000'/* req.get('Host') */}` : ''; // See 'Host header attack'
+    const baseUrl = req
+      ? `${req.protocol}://${'localhost:3000' /* req.get('Host') */}`
+      : ''; // See 'Host header attack'
     return { baseUrl };
   }
 
@@ -53,7 +55,12 @@ class Register extends React.Component {
 
   handleSubmit(event) {
     event.preventDefault();
-    if (Object.keys(rules).some(key => !this.state[key].value || this.state[key].messages.length > 0)) return;
+    if (
+      Object.keys(rules).some(
+        key => !this.state[key].value || this.state[key].messages.length > 0
+      )
+    )
+      return;
     const bitArray = sjcl.hash.sha256.hash(this.state.password.value);
     const payload = {
       first_name: this.state.first_name.value,
@@ -72,7 +79,7 @@ class Register extends React.Component {
     }).then(async response => {
       const contentType = response.headers.get('Content-Type').split(' ')[0];
       if (response.status === 200) {
-        const message = await response.text()
+        const message = await response.text();
         this.setState({
           redirectUser: { url: '/login', delay: 5000, message }
         });
@@ -103,7 +110,8 @@ class Register extends React.Component {
         this.setState(prevState => {
           return {
             confirm_pwd: {
-              ...prevState.confirm_pwd, messages: rules['confirm_pwd'](target.value)(
+              ...prevState.confirm_pwd,
+              messages: rules['confirm_pwd'](target.value)(
                 prevState.confirm_pwd.value
               )
             }
@@ -122,7 +130,7 @@ class Register extends React.Component {
           <form onSubmit={this.handleSubmit}>
             <p className="subtitle" style={{ textAlign: 'center' }}>
               Create your account
-                <br />
+              <br />
               <small>It's your time to shine.</small>
             </p>
             <div className="fields">
@@ -201,21 +209,21 @@ class Register extends React.Component {
                 />
               </div>
             ) : (
-                <input
-                  className="button is-info"
-                  type="submit"
-                  value="Sign up!"
-                  disabled={
-                    Object.keys(rules).some(
-                      key =>
-                        !this.state[key].value ||
-                        this.state[key].messages.length > 0
-                    ) || this.state.noSubmit
-                      ? true
-                      : null
-                  }
-                />
-              )}
+              <input
+                className="button is-info"
+                type="submit"
+                value="Sign up!"
+                disabled={
+                  Object.keys(rules).some(
+                    key =>
+                      !this.state[key].value ||
+                      this.state[key].messages.length > 0
+                  ) || this.state.noSubmit
+                    ? true
+                    : null
+                }
+              />
+            )}
           </form>
           <hr style={{ margin: '0.75rem 0' }} />
           <div style={{ textAlign: 'right' }}>

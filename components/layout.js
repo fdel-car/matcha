@@ -2,20 +2,26 @@ import Head from 'next/head';
 import '../public/scss/style.scss';
 import Router from 'next/router';
 import Loading from '../components/loading';
+import NavigationBar from '../components/navigation_bar';
 
 async function validateUser(protectedPage, pathname) {
-  const res = await fetch('/api/user/validate', {
+  const res = await fetch('/api/user', {
     method: 'GET',
     credentials: 'same-origin',
     headers: {
       'Content-Type': 'application/json',
       'x-xsrf-token': window.localStorage.xsrfToken
     }
-  })
+  });
   if (res.status === 200) {
     const user = await res.json();
-    if (protectedPage && !user.verified && pathname !== '/verify') Router.push('/verify');
-    else if (['/login', '/register'].includes(pathname) || (pathname === '/verify' && user.verified)) Router.push('/');
+    if (protectedPage && !user.verified && pathname !== '/verify')
+      Router.push('/verify');
+    else if (
+      ['/login', '/register'].includes(pathname) ||
+      (pathname === '/verify' && user.verified)
+    )
+      Router.push('/');
     return user;
   } else if (protectedPage) Router.push('/login');
   return null;
@@ -31,9 +37,9 @@ function withLayout(Child, protectedPage = false) {
         authVerified = true;
       }
       if (Child.getInitialProps) {
-        return { user, ...await Child.getInitialProps(ctx), authVerified };
+        return { user, ...(await Child.getInitialProps(ctx)), authVerified };
       }
-      return { user, authVerified }
+      return { user, authVerified };
     }
 
     constructor(props) {
@@ -52,14 +58,15 @@ function withLayout(Child, protectedPage = false) {
       const user = this.props.user || this.state.user;
       const authVerified = this.props.authVerified || this.state.authVerified;
       return (
-        <div>
+        <>
           <Head>
             <meta charSet="utf-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <meta
+              name="viewport"
+              content="width=device-width, initial-scale=1"
+            />
             <title>Matcha</title>
-            <link rel="icon"
-              type="image/png"
-              href="/file/logo.png" />
+            <link rel="icon" type="image/png" href="/file/favicon.png" />
             <link
               rel="stylesheet"
               href="https://use.fontawesome.com/releases/v5.1.0/css/all.css"
@@ -68,14 +75,23 @@ function withLayout(Child, protectedPage = false) {
             />
             <link rel="stylesheet" href="/_next/static/style.css" />
           </Head>
-          {(user || (authVerified && !protectedPage))
-            ?
-            <section className={'section' + (!protectedPage ? ' anon-layout' : '')}>
-              <Child {...this.props} {...this.state}></Child>
-            </section>
-            : <Loading></Loading>}
-        </div>
-      )
+          {user || (authVerified && !protectedPage) ? (
+            <>
+              {protectedPage ? <NavigationBar /> : null}
+              <section
+                className={
+                  'section' +
+                  (!protectedPage ? ' anon-layout' : ' has-navbar-fixed-top')
+                }
+              >
+                <Child {...this.props} {...this.state} />
+              </section>
+            </>
+          ) : (
+            <Loading />
+          )}
+        </>
+      );
     }
   };
 }

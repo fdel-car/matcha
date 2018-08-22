@@ -14,14 +14,14 @@ const rules = {
 };
 
 function validateInput(body) {
-  let messages = []
+  let messages = [];
   Object.keys(body).forEach(key => {
-    if (!body[key]) return messages.push(`The field ${key} can't be blank.`)
+    if (!body[key]) return messages.push(`The field ${key} can't be blank.`);
     if (rules[key] === checkPassword) {
-      return messages = messages.concat(checkPassword(null)(body[key]));
+      return (messages = messages.concat(checkPassword(null)(body[key])));
     }
     messages = messages.concat(rules[key](body[key]));
-  })
+  });
   return messages;
 }
 

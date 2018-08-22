@@ -35,7 +35,7 @@ const checkPassword = list => password => {
   const regex = new RegExp(`^${escapeRegExp(password)}$`, 'm');
   if (list && regex.test(list))
     messages.push(
-      'This password has been breached multiple times, you shouldn\'t use it anymore.'
+      "This password has been breached multiple times, you shouldn't use it anymore."
     );
   if (password.length < 8)
     messages.push('Your password must be at least 8 characters long.');
@@ -49,4 +49,10 @@ const confirmPassword = toConfirm => password => {
   return messages;
 };
 
-module.exports = { checkName, checkUsername, checkEmail, checkPassword, confirmPassword };
+module.exports = {
+  checkName,
+  checkUsername,
+  checkEmail,
+  checkPassword,
+  confirmPassword
+};

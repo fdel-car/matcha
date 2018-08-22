@@ -26,8 +26,8 @@ class RedirectDelayed extends React.Component {
   render() {
     return (
       <p>
-        You will be automatically redirected in <i>{(this.state.last / 1000).toFixed(1)}</i>{' '}
-        seconds...
+        You will be automatically redirected in{' '}
+        <i>{(this.state.last / 1000).toFixed(1)}</i> seconds...
       </p>
     );
   }

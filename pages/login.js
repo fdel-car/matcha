@@ -2,10 +2,7 @@ import Link from 'next/link';
 import withLayout from '../components/layout';
 import Field from '../components/field';
 import Router from 'next/router';
-const {
-  checkUsername,
-  checkPassword
-} = require('../components/verification');
+const { checkUsername, checkPassword } = require('../components/verification');
 const sjcl = require('../sjcl');
 
 const rules = {
@@ -27,7 +24,12 @@ class Login extends React.Component {
 
   handleSubmit(event) {
     event.preventDefault();
-    if (Object.keys(rules).some(key => !this.state[key].value || this.state[key].messages.length > 0)) return;
+    if (
+      Object.keys(rules).some(
+        key => !this.state[key].value || this.state[key].messages.length > 0
+      )
+    )
+      return;
     const bitArray = sjcl.hash.sha256.hash(this.state.password.value);
     const payload = {
       username: this.state.username.value,
@@ -48,13 +50,19 @@ class Login extends React.Component {
         if (response.status === 200) {
           window.localStorage.xsrfToken = json.xsrfToken;
           Router.push('/');
-        }
-        else {
-          const fieldName = json.error.includes('username') ? 'username' : 'password';
-          this.setState(prevState => { return { noSubmit: false, [fieldName]: { ...prevState[fieldName], messages: [json.error] } } });
+        } else {
+          const fieldName = json.error.includes('username')
+            ? 'username'
+            : 'password';
+          this.setState(prevState => {
+            return {
+              noSubmit: false,
+              [fieldName]: { ...prevState[fieldName], messages: [json.error] }
+            };
+          });
         }
       }
-    })
+    });
   }
 
   handleChange(event) {
@@ -78,7 +86,7 @@ class Login extends React.Component {
           <form onSubmit={this.handleSubmit}>
             <p className="subtitle" style={{ textAlign: 'center' }}>
               Login to your account
-                <br />
+              <br />
               <small>What are you waiting for?</small>
             </p>
             <div className="fields">
