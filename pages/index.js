@@ -1,4 +1,4 @@
-// import Link from 'next/link';
+import Link from 'next/link';
 import withLayout from '../components/layout';
 
 class Register extends React.Component {

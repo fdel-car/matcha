@@ -48,8 +48,12 @@ class Login extends React.Component {
       if (contentType === 'application/json;') {
         const json = await response.json();
         if (response.status === 200) {
-          window.localStorage.xsrfToken = json.xsrfToken;
-          Router.push('/');
+          try {
+            window.localStorage.setItem('xsrfToken', json.xsrfToken);
+            Router.push('/');
+          } catch (err) {
+            console.warning(err.message); // localStorage is most probably full, highly unlikely
+          }
         } else {
           const fieldName = json.error.includes('username')
             ? 'username'

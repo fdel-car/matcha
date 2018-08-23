@@ -5,18 +5,19 @@ import Loading from '../components/loading';
 import NavigationBar from '../components/navigation_bar';
 
 async function validateUser(protectedPage, pathname) {
+  const xsrfToken = window.localStorage.getItem('xsrfToken');
+  if (!xsrfToken) {
+    if (protectedPage) Router.push('/login');
+    return null;
+  }
   const res = await fetch('/api/user', {
     method: 'GET',
     credentials: 'same-origin',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-xsrf-token': window.localStorage.xsrfToken
-    }
+    headers: { 'x-xsrf-token': xsrfToken }
   });
   if (res.status === 200) {
     const user = await res.json();
-    if (protectedPage && !user.verified && pathname !== '/verify')
-      Router.push('/verify');
+    if (!user.verified && pathname !== '/verify') Router.push('/verify');
     else if (
       ['/login', '/register'].includes(pathname) ||
       (pathname === '/verify' && user.verified)
@@ -28,7 +29,8 @@ async function validateUser(protectedPage, pathname) {
 }
 
 function withLayout(Child, protectedPage = false) {
-  return class extends React.Component {
+  return class extends React.PureComponent {
+    // Keep an eye on that, if children do not update correctly it can be because of that 'PureComponent'
     static async getInitialProps(ctx) {
       let user = null;
       let authVerified = false;
@@ -44,14 +46,44 @@ function withLayout(Child, protectedPage = false) {
 
     constructor(props) {
       super(props);
-      this.state = {};
+      this.state = {
+        user: this.props.user,
+        loadingPage: false,
+        authVerified: false
+      };
+      this.handleRouteChange.bind(this);
+    }
+
+    handleRouteChange(url) {
+      console.log(`Starting to load ${url}...`);
+      this.setState({
+        loadingPage:
+          !this.props.authVerified && !this.state.authVerified ? true : false
+      });
     }
 
     async componentDidMount() {
+      Router.onRouteChangeStart = url => this.handleRouteChange(url);
+      Router.onRouteChangeComplete = () =>
+        this.setState({ loadingPage: false });
+      Router.onRouteChangeError = err => {
+        if (err) console.log(err.message);
+        this.setState({ loadingPage: false });
+      };
       if (!this.props.authVerified) {
         const user = await validateUser(protectedPage, Router.pathname);
         this.setState({ user, authVerified: true });
       }
+      window.addEventListener(
+        'storage',
+        function(event) {
+          if (event.isTrusted && event.key === 'xsrfToken') {
+            if (event.newValue === null) Router.push('/login');
+            if (event.newValue !== null) Router.push('/');
+          }
+        },
+        false
+      );
     }
 
     render() {
@@ -75,7 +107,8 @@ function withLayout(Child, protectedPage = false) {
             />
             <link rel="stylesheet" href="/_next/static/style.css" />
           </Head>
-          {user || (authVerified && !protectedPage) ? (
+          {(!!user || (authVerified && !protectedPage)) &&
+          !this.state.loadingPage ? (
             <>
               {protectedPage ? <NavigationBar /> : null}
               <section

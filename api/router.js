@@ -69,6 +69,11 @@ router.post('/login', async (req, res, next) => {
   }
 });
 
+router.get('/logout', (req, res) => {
+  res.clearCookie('jwt', { path: '/', httpOnly: true });
+  res.sendStatus(200);
+});
+
 router.post('/verify', async (req, res, next) => {
   try {
     if (!req.body)

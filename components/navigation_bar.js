@@ -2,7 +2,10 @@ import Link from 'next/link';
 import Router from 'next/router';
 
 const NavigationItem = props => (
-  <Link href={props.pathname}>
+  <Link
+    href={props.pathname}
+    shallow={Router.pathname === props.pathname ? true : false}
+  >
     <a
       className={
         'navbar-item' + (Router.pathname === props.pathname ? ' is-active' : '')
@@ -17,14 +20,22 @@ class NavigationBar extends React.Component {
   constructor(props) {
     super(props);
     this.state = { mobileMenuOpen: false };
-    this.handleClick = this.handleClick.bind(this);
+    this.openMobileMenu = this.openMobileMenu.bind(this);
+    this.logout = this.logout.bind(this);
   }
 
-  handleClick() {
+  openMobileMenu() {
     this.setState(prevState => {
       return {
         mobileMenuOpen: prevState.mobileMenuOpen ? false : true
       };
+    });
+  }
+
+  logout() {
+    fetch('/api/logout', { method: 'GET' }).then(res => {
+      window.localStorage.removeItem('xsrfToken');
+      Router.push('/login');
     });
   }
 
@@ -51,7 +62,7 @@ class NavigationBar extends React.Component {
               }
               aria-label="menu"
               aria-expanded="false"
-              onClick={this.handleClick}
+              onClick={this.openMobileMenu}
             >
               <span aria-hidden="true" />
               <span aria-hidden="true" />
@@ -70,7 +81,7 @@ class NavigationBar extends React.Component {
               <div className="navbar-item">
                 <div className="field is-grouped">
                   <p className="control">
-                    <a className="button">
+                    <a className="button" onClick={this.logout}>
                       <span className="icon">
                         <i className="fas fa-sign-out-alt" aria-hidden="true" />
                       </span>
