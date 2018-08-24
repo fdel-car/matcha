@@ -1,7 +1,6 @@
-import Link from 'next/link';
 import withLayout from '../components/layout';
 
-class Register extends React.Component {
+class Home extends React.Component {
   render() {
     return (
       <div className="container">
@@ -11,4 +10,4 @@ class Register extends React.Component {
   }
 }
 
-export default withLayout(Register, true);
+export default withLayout(Home, true);

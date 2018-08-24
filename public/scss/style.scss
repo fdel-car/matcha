@@ -114,3 +114,10 @@ section.has-navbar-fixed-top {
     -webkit-transform: scale(0.8);
   }
 }
+
+.profile-image {
+  cursor: pointer;
+}
+.secondary-picture:not(:last-child) {
+  margin-bottom: 1.5rem;
+}

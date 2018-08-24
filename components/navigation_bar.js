@@ -11,6 +11,10 @@ const NavigationItem = props => (
         'navbar-item' + (Router.pathname === props.pathname ? ' is-active' : '')
       }
     >
+      <i
+        className={'icon fas ' + props.icon}
+        style={{ marginRight: '0.25rem' }}
+      />
       {props.label}
     </a>
   </Link>
@@ -75,7 +79,12 @@ class NavigationBar extends React.Component {
             }
           >
             <div className="navbar-start">
-              <NavigationItem label="Browse" pathname="/" />
+              <NavigationItem icon="fa-home" label="Home" pathname="/" />
+              <NavigationItem
+                icon="fa-user-alt"
+                label="Profile"
+                pathname="/profile"
+              />
             </div>
             <div className="navbar-end">
               <div className="navbar-item">
