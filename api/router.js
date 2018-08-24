@@ -47,7 +47,7 @@ router.post('/login', async (req, res, next) => {
     if (messages.length > 0)
       return res.status(400).json({ error: messages.join(' ') });
     const user = await db.query(
-      'SELECT password, id, email FROM schema.users WHERE username = ($1)',
+      'SELECT password, id, email FROM users WHERE username = ($1)',
       [username]
     );
     if (!user.rows[0])
@@ -85,7 +85,7 @@ router.post('/verify', async (req, res, next) => {
     if (messages.length > 0)
       return res.status(400).json({ error: messages.join(' ') });
     const user = await db.query(
-      'SELECT verify_token, verified FROM schema.users WHERE email = ($1)',
+      'SELECT verify_token, verified FROM users WHERE email = ($1)',
       [email]
     );
     if (!user.rows[0])
@@ -99,7 +99,7 @@ router.post('/verify', async (req, res, next) => {
         .json({ error: 'This email address has already been verified.' });
     if (token === verify_token) {
       await db.query(
-        'UPDATE schema.users SET verified = TRUE, verify_token = NULL WHERE email = ($1)',
+        'UPDATE users SET verified = TRUE, verify_token = NULL WHERE email = ($1)',
         [email]
       );
       return res.sendStatus(200);
@@ -123,7 +123,7 @@ router.post('/verify/resend_email', async (req, res, next) => {
     if (messages.length > 0)
       return res.status(400).json({ error: messages.join(' ') });
     const user = await db.query(
-      'SELECT verified FROM schema.users WHERE email = ($1)',
+      'SELECT verified FROM users WHERE email = ($1)',
       [email]
     );
     if (!user.rows[0])
@@ -136,10 +136,10 @@ router.post('/verify/resend_email', async (req, res, next) => {
         error: 'The user associated with this email is already verified.'
       });
     const { transporter, token } = generateToken();
-    await db.query(
-      'UPDATE schema.users SET verify_token = ($2) WHERE email = ($1)',
-      [email, token]
-    );
+    await db.query('UPDATE users SET verify_token = ($2) WHERE email = ($1)', [
+      email,
+      token
+    ]);
     sendMail(transporter, req, email, token);
     return res.sendStatus(200);
   } catch (err) {
@@ -165,7 +165,7 @@ router.post('/user', (req, res, next) => {
     try {
       const { transporter, token } = generateToken();
       await db.query(
-        'INSERT INTO schema.users (id, username, first_name, last_name, email, password, verify_token) VALUES (DEFAULT, $1, $2, $3, $4, $5, $6)',
+        'INSERT INTO users (id, username, first_name, last_name, email, password, verify_token) VALUES (DEFAULT, $1, $2, $3, $4, $5, $6)',
         [username, first_name, last_name, email, hash, token]
       );
       sendMail(transporter, req, email, token);
@@ -188,14 +188,16 @@ router.post('/user', (req, res, next) => {
 
 router.use(function(req, res, next) {
   const JWToken = req.cookies.jwt;
+  if (!JWToken) return res.sendStatus(401);
   const xsrfToken = req.headers['x-xsrf-token'];
-  if (!JWToken || !xsrfToken) return res.sendStatus(401);
+  if (req.method !== 'GET' && !xsrfToken) return res.sendStatus(401);
   jwt.verify(JWToken, 'secret', async function(err, decoded) {
     if (err) return res.sendStatus(401);
     try {
-      if (decoded.xsrfToken !== xsrfToken) return res.sendStatus(401); // CSRF attack!
+      if (req.method !== 'GET' && decoded.xsrfToken !== xsrfToken)
+        return res.sendStatus(401); // CSRF attack!
       const user = await db.query(
-        'SELECT id, username, first_name, last_name, email, verified FROM schema.users WHERE id = ($1)',
+        'SELECT id, username, first_name, last_name, email, verified FROM users WHERE id = ($1)',
         [decoded.uid]
       );
       if (!user.rows[0]) return res.sendStatus(400); // Very unlikely
@@ -209,6 +211,18 @@ router.use(function(req, res, next) {
 
 router.get('/user', function(req, res, next) {
   res.status(200).json(req.user);
+});
+
+router.get('/pictures/:user_id', async function(req, res, next) {
+  try {
+    const results = await db.query(
+      'SELECT filename, position FROM pictures INNER JOIN users ON users.id=pictures.user_id WHERE pictures.user_id = ($1) ORDER BY position',
+      [req.params.user_id]
+    );
+    res.status(200).json(results.rows);
+  } catch (err) {
+    next(err);
+  }
 });
 
 module.exports = router;

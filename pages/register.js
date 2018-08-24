@@ -17,7 +17,7 @@ const rules = {
   username: checkUsername,
   email: checkEmail,
   password: checkPassword,
-  confirm_pwd: confirmPassword
+  confirm_password: confirmPassword
 };
 
 class Register extends React.Component {
@@ -103,16 +103,16 @@ class Register extends React.Component {
     let messages = [];
     // Need to review this else if mess
     if (rules[target.name]) {
-      if (target.name === 'confirm_pwd')
+      if (target.name === 'confirm_password')
         messages = rules[target.name](this.state.password.value)(target.value);
       else if (target.name === 'password') {
         messages = rules[target.name](this.state.list)(target.value);
         this.setState(prevState => {
           return {
-            confirm_pwd: {
-              ...prevState.confirm_pwd,
-              messages: rules['confirm_pwd'](target.value)(
-                prevState.confirm_pwd.value
+            confirm_password: {
+              ...prevState.confirm_password,
+              messages: rules['confirm_password'](target.value)(
+                prevState.confirm_password.value
               )
             }
           };
@@ -141,6 +141,7 @@ class Register extends React.Component {
                     label="First Name"
                     type="text"
                     name="first_name"
+                    autoComplete="given-name"
                     onChange={this.handleChange}
                     value={this.state.first_name.value}
                     messages={this.state.first_name.messages}
@@ -150,6 +151,7 @@ class Register extends React.Component {
                     label="Last Name"
                     type="text"
                     name="last_name"
+                    autoComplete="family-name"
                     onChange={this.handleChange}
                     value={this.state.last_name.value}
                     messages={this.state.last_name.messages}
@@ -160,6 +162,7 @@ class Register extends React.Component {
                 iconLeft="user"
                 placeholder="e.g. cgilbert"
                 label="Username"
+                autoComplete="username"
                 name="username"
                 type="text"
                 onChange={this.handleChange}
@@ -171,6 +174,7 @@ class Register extends React.Component {
                 placeholder="e.g. caroline.gilbert@example.com"
                 label="Email"
                 name="email"
+                autoComplete="email"
                 type="email"
                 onChange={this.handleChange}
                 value={this.state.email.value}
@@ -181,6 +185,7 @@ class Register extends React.Component {
                 placeholder="e.g. 2YtGAbO7qXnvFjX2"
                 label="Password"
                 name="password"
+                autoComplete="new-password"
                 type="password"
                 onChange={this.handleChange}
                 value={this.state.password.value}
@@ -190,11 +195,12 @@ class Register extends React.Component {
                 iconLeft="lock"
                 placeholder="e.g. 2YtGAbO7qXnvFjX2"
                 label="Confirm your password"
-                name="confirm_pwd"
+                name="confirm_password"
+                autoComplete="new-password"
                 type="password"
                 onChange={this.handleChange}
-                value={this.state.confirm_pwd.value}
-                messages={this.state.confirm_pwd.messages}
+                value={this.state.confirm_password.value}
+                messages={this.state.confirm_password.messages}
               />
             </div>
             {this.state.redirectUser ? (

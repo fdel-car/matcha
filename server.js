@@ -22,7 +22,9 @@ app
     server.get('/file/:name', function(req, res, next) {
       const fileName = req.params.name;
       const options = {
-        root: __dirname + `/public/${imgExtensions.some(ext => fileName.endsWith(ext)) ? 'img/' : 'other/'}`,
+        root:
+          __dirname +
+          `/public/${fileName.indexOf(imgExtensions) ? 'img/' : 'other/'}`,
         dotfiles: 'deny',
         headers: {
           'x-timestamp': Date.now(),

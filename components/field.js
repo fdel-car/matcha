@@ -26,6 +26,7 @@ class Field extends React.Component {
             value={this.props.value}
             onChange={this.props.onChange}
             name={this.props.name}
+            autoComplete={this.props.autoComplete}
           />
           {iconLeft && (
             <span className="icon is-small is-left">
@@ -40,7 +41,9 @@ class Field extends React.Component {
         </div>
         {this.props.value && !isValid ? (
           <div className={'help' + className}>
-            {this.props.messages.map((message, i) => <p key={i}>{message}</p>)}
+            {this.props.messages.map((message, i) => (
+              <p key={i}>{message}</p>
+            ))}
           </div>
         ) : null}
       </div>

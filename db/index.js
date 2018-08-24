@@ -1,6 +1,7 @@
 const colors = require('colors');
 const { Pool } = require('pg');
-const connectionString = 'postgresql://fdel-car:rootroot@localhost:5432/db';
+const connectionString =
+  'postgresql://fdel-car:rootroot@localhost:5432/matcha-db';
 
 const pool = new Pool({ connectionString });
 

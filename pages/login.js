@@ -99,6 +99,7 @@ class Login extends React.Component {
                 placeholder="e.g. cgilbert"
                 label="Username"
                 name="username"
+                autoComplete="username"
                 type="text"
                 onChange={this.handleChange}
                 value={this.state.username.value}
@@ -109,6 +110,7 @@ class Login extends React.Component {
                 placeholder="e.g. 2YtGAbO7qXnvFjX2"
                 label="Password"
                 name="password"
+                autoComplete="current-password"
                 type="password"
                 onChange={this.handleChange}
                 value={this.state.password.value}
