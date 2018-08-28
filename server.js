@@ -7,6 +7,7 @@ const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
 const handle = app.getRequestHandler();
 const apiEndpoints = require('./api/router');
+const imgExtension = ['gif', 'png', 'jpg', 'jpeg', 'ico'];
 
 app
   .prepare()
@@ -18,13 +19,14 @@ app
 
     server.use('/api', apiEndpoints);
 
-    const imgExtensions = ['.gif', '.png', '.jpg', '.jpeg', '.ico'];
     server.get('/file/:name', function(req, res, next) {
       const fileName = req.params.name;
+      let fileType = fileName.split('.');
+      fileType = fileType[fileType.length - 1];
       const options = {
         root:
           __dirname +
-          `/public/${fileName.indexOf(imgExtensions) ? 'img/' : 'other/'}`,
+          `/public/${imgExtension.indexOf(fileType) >= 0 ? 'img/' : 'other/'}`,
         dotfiles: 'deny',
         headers: {
           'x-timestamp': Date.now(),

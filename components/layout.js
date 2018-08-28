@@ -5,22 +5,20 @@ import Loading from '../components/loading';
 import NavigationBar from '../components/navigation_bar';
 
 async function validateUser(protectedPage, pathname) {
-  // const xsrfToken = window.localStorage.getItem('xsrfToken');
-  // if (!xsrfToken) {
-  //   if (protectedPage) Router.push('/login');
-  //   return null;
-  // }
+  if (!window.localStorage.getItem('xsrfToken')) {
+    if (protectedPage) Router.push('/login');
+    return null;
+  }
   const res = await fetch('/api/user', {
     method: 'GET',
     credentials: 'same-origin'
-    // headers: { 'x-xsrf-token': xsrfToken }
   });
   if (res.status === 200) {
     const user = await res.json();
     if (!user.verified && pathname !== '/verify') Router.push('/verify');
     else if (
-      ['/login', '/register'].includes(pathname) ||
-      (pathname === '/verify' && user.verified)
+      ['/login', '/register'].includes(pathname)
+      // || (pathname === '/verify' && user.verified)
     )
       Router.push('/');
     return user;

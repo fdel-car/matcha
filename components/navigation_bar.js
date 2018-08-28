@@ -52,7 +52,7 @@ class NavigationBar extends React.Component {
               <a className="navbar-item">
                 <img
                   src="/file/logo.png"
-                  alt="Matcha: your love is awaiting."
+                  alt="Matcha logo"
                   width="112"
                   height="28"
                 />

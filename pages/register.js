@@ -39,14 +39,15 @@ class Register extends React.Component {
     this.handleChange = this.handleChange.bind(this);
   }
 
-  async componentDidMount() {
+  componentDidMount() {
     console.log('Password list is loading...');
-    const response = await fetch(this.props.baseUrl + '/file/breached.txt');
-    if (this.isUnmounted) return console.log('Fetch of the list aborted.');
-    const list = await response.text();
-    if (this.isUnmounted) return console.log('Fetch of the list aborted.');
-    this.setState({ list });
-    console.log('File loaded and stored.');
+    fetch(this.props.baseUrl + '/file/breached.txt').then(async response => {
+      if (this.isUnmounted) return console.log('Fetch of the list aborted.');
+      const list = await response.text();
+      if (this.isUnmounted) return console.log('Fetch of the list aborted.');
+      this.setState({ list });
+      console.log('File loaded and stored.');
+    });
   }
 
   componentWillUnmount() {

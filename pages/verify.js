@@ -2,6 +2,7 @@ import Link from 'next/link';
 import withLayout from '../components/layout';
 import RedirectDelayed from '../components/redirect_delayed';
 import fetch from 'isomorphic-fetch';
+import Router from 'next/router';
 
 const assignClass = statusCode => {
   switch (statusCode) {
@@ -75,13 +76,16 @@ class Verify extends React.Component {
     } // else error 500, check server logs
   }
 
-  render() {
+  componentWillMount() {
     if (
       this.props.user &&
       this.props.user.verified &&
       this.props.statusCode !== 200
     )
-      return null;
+      Router.push('/');
+  }
+
+  render() {
     return (
       <div className="card">
         <div className="card-content">
@@ -142,7 +146,8 @@ class Verify extends React.Component {
                     You can try to{' '}
                     <Link href="/login">
                       <a>login here</a>
-                    </Link>.
+                    </Link>
+                    .
                   </>
                 )}
               </p>

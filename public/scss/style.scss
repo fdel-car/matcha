@@ -115,17 +115,46 @@ section.has-navbar-fixed-top {
   }
 }
 
-.profile-image {
+.profile-picture {
   cursor: pointer;
+  &.upload-disabled {
+    cursor: not-allowed;
+    opacity: 0.66;
+  }
 }
 .secondary-picture:not(:last-child) {
   margin-bottom: 1.5rem;
 }
-.carousel-button {
+.centered-div {
   position: absolute;
+  top: 0;
+  bottom: 0;
   left: 0;
   right: 0;
-  margin: 0 auto;
-  width: 0; // Needed
-  z-index: 10;
+  width: 5rem;
+  margin: auto;
+  height: 2.25rem;
+}
+.centered-div button.is-rounded {
+  padding-left: 0.75rem !important;
+  padding-right: 0.75rem !important;
+}
+.progress {
+  border: 0.2rem solid #dbdbdb;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  margin: auto;
+  width: 50%;
+  right: 0;
+}
+.star-button {
+  position: absolute;
+  margin-right: 0.5rem;
+  margin-top: 0.5rem;
+  right: 0;
+  top: 0;
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
 }

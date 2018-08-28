@@ -15,7 +15,7 @@ verified boolean DEFAULT FALSE,\
 verify_token varchar)'
     );
     await db.query(
-      'CREATE TABLE IF NOT EXISTS pictures (\
+      'CREATE TABLE IF NOT EXISTS images (\
 id serial UNIQUE,\
 user_id integer NOT NULL,\
 filename varchar,\

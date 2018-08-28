@@ -5,9 +5,13 @@ const bcrypt = require('bcrypt');
 const validateInput = require('./validate_input');
 const jwt = require('jsonwebtoken');
 const uuidv4 = require('uuid/v4');
+const formidable = require('formidable');
+const fs = require('fs');
 
-const generateJWT = (uid, xsrfToken) =>
-  jwt.sign({ uid, xsrfToken }, 'secret', { expiresIn: '1h' });
+const uploadDir = `${__dirname}/../protected/img/`;
+const imgExtension = ['gif', 'png', 'jpg', 'jpeg', 'ico'];
+
+const generateJWT = (uid, xsrfToken) => jwt.sign({ uid, xsrfToken }, 'secret');
 function generateToken() {
   const nodemailer = require('nodemailer');
   const transporter = nodemailer.createTransport({
@@ -161,7 +165,7 @@ router.post('/user', (req, res, next) => {
   if (messages.length > 0)
     return res.status(400).json({ error: messages.join(' ') });
   bcrypt.hash(password, 12, async function(err, hash) {
-    if (err) next(err);
+    if (err) return next(err);
     try {
       const { transporter, token } = generateToken();
       await db.query(
@@ -213,13 +217,107 @@ router.get('/user', function(req, res, next) {
   res.status(200).json(req.user);
 });
 
-router.get('/pictures/:user_id', async function(req, res, next) {
+router.get('/file/protected/:name', function(req, res, next) {
+  const fileName = req.params.name;
+  let fileType = fileName.split('.');
+  fileType = fileType[fileType.length - 1];
+  const options = {
+    root:
+      __dirname +
+      `/../protected/${
+        imgExtension.indexOf(fileType) >= 0 ? 'img/' : 'other/'
+      }`,
+    dotfiles: 'deny',
+    headers: {
+      'x-timestamp': Date.now(),
+      'x-sent': true
+    }
+  };
+  res.sendFile(fileName, options, function(err) {
+    if (err) {
+      next(err);
+    }
+  });
+});
+
+router.get('/images/:user_id', async function(req, res, next) {
   try {
     const results = await db.query(
-      'SELECT filename, position FROM pictures INNER JOIN users ON users.id=pictures.user_id WHERE pictures.user_id = ($1) ORDER BY position',
+      'SELECT filename FROM images INNER JOIN users ON users.id=images.user_id WHERE images.user_id = ($1) ORDER BY position',
       [req.params.user_id]
     );
     res.status(200).json(results.rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/images/:user_id', async function(req, res, next) {
+  if (req.params.user_id != req.user.id) return res.sendStatus(401);
+  const form = new formidable.IncomingForm();
+  form.maxFileSize = 10 * 1024 * 1024;
+  form.parse(req, function(err, fields, files) {
+    if (err) {
+      if (err.message.includes('maxFileSize exceeded'))
+        return res
+          .status(400)
+          .send('The file received is too large, the maximum size is 10MB.');
+      return next(err);
+    }
+    if (fields.position < 1 || fields.position > 4) return res.sendStatus(400);
+    const file = files.image;
+    if (!file) return res.status(400).send('No file to upload.');
+    let fileType = file.name.split('.');
+    fileType = fileType[fileType.length - 1];
+    const filename = uuidv4() + '.' + fileType;
+    fs.rename(file.path, uploadDir + filename, async function(err) {
+      try {
+        if (err) {
+          fs.copyFileSync(file.path, uploadDir + filename);
+          fs.unlink(
+            file.path,
+            err =>
+              err ? console.error(`Error in /tmp file deletion: ${err}`) : null
+          );
+        }
+        const inDB = await db.query(
+          'SELECT id, filename FROM images WHERE user_id = ($1) AND position = ($2)',
+          [req.params.user_id, fields.position]
+        );
+        if (inDB.rows[0]) {
+          fs.unlink(
+            uploadDir + inDB.rows[0].filename,
+            err =>
+              err
+                ? console.error(`Error in previous file deletion: ${err}`)
+                : null
+          );
+          await db.query('UPDATE images SET filename = ($1) WHERE id = ($2)', [
+            filename,
+            inDB.rows[0].id
+          ]);
+        } else {
+          await db.query(
+            'INSERT INTO images (id, user_id, filename, position) VALUES(DEFAULT, $1, $2, $3)',
+            [req.params.user_id, filename, fields.position]
+          );
+        }
+      } catch (err) {
+        return next(err);
+      }
+      res.sendStatus(200);
+    });
+  });
+});
+
+router.post('/images/:user_id/swap', async function(req, res, next) {
+  if (req.params.user_id != req.user.id) return res.sendStatus(401);
+  try {
+    await db.query(
+      'UPDATE images SET position = CASE WHEN position = ($1) THEN ($3) ELSE ($1) END WHERE user_id = ($2) AND (position = ($1) OR position = ($3))',
+      [req.body.a, req.params.user_id, req.body.b]
+    );
+    res.sendStatus(200);
   } catch (err) {
     next(err);
   }
