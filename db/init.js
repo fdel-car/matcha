@@ -5,7 +5,7 @@ const { exec } = require('child_process');
   exec('createdb matcha-db', async function(err, stdout, stderr) {
     await db.query(
       'CREATE TABLE IF NOT EXISTS users (\
-id serial UNIQUE,\
+id serial PRIMARY KEY,\
 username varchar(32) UNIQUE,\
 first_name varchar(32),\
 last_name varchar(32),\
@@ -16,10 +16,21 @@ verify_token varchar)'
     );
     await db.query(
       'CREATE TABLE IF NOT EXISTS images (\
-id serial UNIQUE,\
-user_id integer NOT NULL,\
+id serial PRIMARY KEY,\
+user_id integer NOT NULL references users(id),\
 filename varchar,\
 position smallint)'
+    );
+    await db.query(
+      'CREATE TABLE IF NOT EXISTS interests (\
+id serial PRIMARY KEY,\
+label varchar UNIQUE NOT NULL)'
+    );
+    await db.query(
+      'CREATE TABLE IF NOT EXISTS interest_list (\
+id serial PRIMARY KEY,\
+user_id integer NOT NULL references users(id),\
+tag_id integer NOT NULL references interests(id))'
     );
     await db.close();
   }); // Create db if it does not exist yet, otherwise silently fail

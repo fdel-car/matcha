@@ -49,10 +49,18 @@ const confirmPassword = toConfirm => password => {
   return messages;
 };
 
+const checkBio = bio => {
+  let messages = [];
+  if (bio.length > 512)
+    messages.push("Your bio can't be more than 512 characters long.");
+  return messages;
+};
+
 module.exports = {
   checkName,
   checkUsername,
   checkEmail,
   checkPassword,
-  confirmPassword
+  confirmPassword,
+  checkBio
 };

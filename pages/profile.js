@@ -1,5 +1,25 @@
 import withLayout from '../components/layout';
+import ProfileCard from '../components/profile_card';
+import Field from '../components/field';
+import Select from '../components/select';
 import axios from 'axios';
+import countryList from '../public/other/country-list';
+const {
+  checkName,
+  checkEmail,
+  checkPassword,
+  confirmPassword,
+  checkBio
+} = require('../components/verification');
+
+const rules = {
+  last_name: checkName,
+  first_name: checkName,
+  email: checkEmail,
+  password: checkPassword,
+  confirm_password: confirmPassword,
+  bio: checkBio
+};
 
 class EditableImage extends React.Component {
   constructor(props) {
@@ -173,9 +193,27 @@ class Profile extends React.Component {
       const img = {};
       images.push(img);
     }
-    this.state = { images };
+    this.state = {
+      images,
+      bio: { value: '', messages: [] },
+      gender: {
+        value: '',
+        messages: [
+          'You must select a gender in order to be displayed to other people.'
+        ]
+      },
+      sexuality: { value: 2, messages: [] },
+      country: {
+        value: '',
+        messages: []
+      },
+      first_name: { value: props.user.first_name, messages: [] },
+      last_name: { value: props.user.last_name, messages: [] }
+    };
     this.swapImagePosition = this.swapImagePosition.bind(this);
     this.updateAllFilename = this.updateAllFilename.bind(this);
+    this.handleChange = this.handleChange.bind(this);
+    this.selectChange = this.selectChange.bind(this);
   }
 
   async updateAllFilename() {
@@ -221,36 +259,191 @@ class Profile extends React.Component {
     });
   }
 
+  handleChange(event) {
+    const target = event.target;
+    let messages = [];
+    // Need to review this else if mess
+    if (rules[target.name]) {
+      if (target.name === 'confirm_password')
+        messages = rules[target.name](this.state.password.value)(target.value);
+      else if (target.name === 'password') {
+        messages = rules[target.name](this.state.list)(target.value);
+        this.setState(prevState => {
+          return {
+            confirm_password: {
+              ...prevState.confirm_password,
+              messages: rules['confirm_password'](target.value)(
+                prevState.confirm_password.value
+              )
+            }
+          };
+        });
+      } else messages = rules[target.name](target.value);
+    }
+    this.setState({ [target.name]: { value: target.value, messages } });
+  }
+
+  selectChange(event) {
+    const target = event.target;
+    this.setState({ [target.name]: { value: target.value, messages: [] } });
+  }
+
   render() {
     return (
       <div className="container">
         <div className="columns">
-          <div className="column is-9">
-            <EditableImage
-              img={this.state.images[0]}
-              position={1}
-              userId={this.props.user.id}
-              update={this.updateAllFilename}
-            />
+          <div className="column is-two-thirds">
+            <p className="title is-4">
+              <span className="icon">
+                <i className="far fa-images" />
+              </span>{' '}
+              Pictures selection
+            </p>
+            <p className="subtitle is-6">
+              Select the images that will be displayed on your profile page,
+              don't hesitate to play with the order.
+            </p>
+            <div className="columns">
+              <div className="column is-9">
+                <EditableImage
+                  img={this.state.images[0]}
+                  position={1}
+                  userId={this.props.user.id}
+                  update={this.updateAllFilename}
+                />
+              </div>
+              <div className="column">
+                {this.state.images
+                  .filter((img, index) => index !== 0)
+                  .map((img, index) => (
+                    <div key={index} className="secondary-picture">
+                      <EditableImage
+                        img={img}
+                        position={index + 2}
+                        userId={this.props.user.id}
+                        swap={this.swapImagePosition}
+                        update={this.updateAllFilename}
+                        disable={!this.state.images[index].filename}
+                      />
+                    </div>
+                  ))}
+              </div>
+            </div>
           </div>
           <div className="column">
-            {this.state.images
-              .filter((img, index) => index !== 0)
-              .map((img, index) => (
-                <div key={index} className="secondary-picture">
-                  <EditableImage
-                    img={img}
-                    position={index + 2}
-                    userId={this.props.user.id}
-                    swap={this.swapImagePosition}
-                    update={this.updateAllFilename}
-                    disable={!this.state.images[index].filename}
-                  />
-                </div>
-              ))}
+            <p className="title is-4">
+              <span className="icon">
+                <i className="far fa-address-card" />
+              </span>{' '}
+              Card preview
+            </p>
+            <p className="subtitle is-6">
+              This is how other people will see you on the app!
+            </p>
+            <ProfileCard
+              img={this.state.images[0]}
+              user={{
+                ...this.props.user,
+                first_name: this.state.first_name.value,
+                last_name: this.state.last_name.value
+              }}
+            />
           </div>
         </div>
+        {/* <div className="card">
+          <div className="card-content"> */}
+        <p className="title is-4">
+          <span className="icon">
+            <i className="fas fa-info-circle" />
+          </span>{' '}
+          Informations
+        </p>
+        <p className="subtitle is-6">
+          Everything you think that people should know about you.
+        </p>
+        <form>
+          <div className="fields">
+            <div className="field is-horizontal">
+              <div className="field-body">
+                <Field
+                  placeholder="e.g. Caroline"
+                  label="First Name"
+                  type="text"
+                  name="first_name"
+                  autoComplete="given-name"
+                  onChange={this.handleChange}
+                  value={this.state.first_name.value}
+                  messages={this.state.first_name.messages}
+                />
+                <Field
+                  placeholder="e.g. Gilbert"
+                  label="Last Name"
+                  type="text"
+                  name="last_name"
+                  autoComplete="family-name"
+                  onChange={this.handleChange}
+                  value={this.state.last_name.value}
+                  messages={this.state.last_name.messages}
+                />
+              </div>
+            </div>
+            <div className="field is-horizontal">
+              <div className="field-body">
+                <Select
+                  label="Gender"
+                  name="gender"
+                  expanded={true}
+                  selected={this.state.gender.value}
+                  messages={this.state.gender.messages}
+                  onChange={this.selectChange}
+                  list={[
+                    { label: 'Male', value: 0 },
+                    { label: 'Female', value: 1 }
+                  ]}
+                />
+                <Select
+                  label="Sexuality"
+                  name="sexuality"
+                  expanded={true}
+                  selected={this.state.sexuality.value}
+                  onChange={this.selectChange}
+                  list={[
+                    { label: 'Heterosexual', value: 0 },
+                    { label: 'Homosexual', value: 1 },
+                    { label: 'Bisexual', value: 2 }
+                  ]}
+                />
+                <Select
+                  label="Country"
+                  name="country"
+                  expanded={true}
+                  selected={this.state.country.value}
+                  onChange={this.selectChange}
+                  iconLeft="globe"
+                  list={Object.keys(countryList).map(key => {
+                    return {
+                      label: countryList[key],
+                      value: key
+                    };
+                  })}
+                />
+              </div>
+            </div>
+            <Field
+              textarea={true}
+              placeholder="I sexually Identify as an Attack Helicopter. Ever since I was a boy I dreamed of soaring over the oilfields dropping hot sticky loads on disgusting foreigners. People say to me that a person being a helicopter is Impossible and I'm fucking retarded but I don't care, I'm beautiful. I'm having a plastic surgeon install rotary blades, 30 mm cannons and AMG-114 Hellfire missiles on my body. From now on I want you guys to call me 'Apache' and respect my right to kill from above and kill needlessly. If you can't accept me you're a heliphobe and need to check your vehicle privilege. Thank you for being so understanding."
+              label="Bio (tell us about you)"
+              name="bio"
+              type="text"
+              onChange={this.handleChange}
+              value={this.state.bio.value}
+              messages={this.state.bio.messages}
+            />
+          </div>
+        </form>
       </div>
+      //   </div>
+      // </div>
     );
   }
 }

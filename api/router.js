@@ -61,8 +61,8 @@ router.post('/login', async (req, res, next) => {
     if (isValid) {
       const xsrfToken = uuidv4();
       res.cookie('jwt', generateJWT(user.rows[0].id, xsrfToken), {
-        httpOnly: true,
-        maxAge: 3600000
+        httpOnly: true
+        // maxAge: 3600000
       });
       res.status(200).json({ xsrfToken });
     } else {
