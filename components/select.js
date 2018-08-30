@@ -20,10 +20,10 @@ const Select = props => {
           <select
             name={props.name}
             onChange={props.onChange}
-            defaultValue={props.selected || ''}
+            value={props.selected || ""}
           >
             {props.selected ? null : (
-              <option hidden disabled value="">
+              <option disabled value="">
                 None selected...
               </option>
             )}

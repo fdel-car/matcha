@@ -7,8 +7,8 @@ import countryList from '../public/other/country-list';
 const {
   checkName,
   checkEmail,
-  checkPassword,
-  confirmPassword,
+  // checkPassword,
+  // confirmPassword,
   checkBio
 } = require('../components/verification');
 
@@ -16,9 +16,9 @@ const rules = {
   last_name: checkName,
   first_name: checkName,
   email: checkEmail,
-  password: checkPassword,
-  confirm_password: confirmPassword,
-  bio: checkBio
+  bio: checkBio,
+  gender: null,
+  sexuality: null
 };
 
 class EditableImage extends React.Component {
@@ -122,10 +122,10 @@ class EditableImage extends React.Component {
               (this.props.img.filename
                 ? `/api/file/protected/${this.props.img.filename}`
                 : `/file/${
-                    this.props.position === 1
-                      ? 'default.jpg'
-                      : `${this.props.position}.png`
-                  }`)
+                this.props.position === 1
+                  ? 'default.jpg'
+                  : `${this.props.position}.png`
+                }`)
             }
           />
           <input
@@ -161,16 +161,16 @@ class EditableImage extends React.Component {
               </p>
             </div>
           ) : this.props.swap &&
-          !this.state.progress &&
-          this.props.img.filename ? (
-            <button
-              type="button"
-              className="button is-rounded star-button"
-              onClick={() => this.props.swap(this.props.position - 1, 0)}
-            >
-              <i className="has-text-warning fas fa-star" />
-            </button>
-          ) : null}
+            !this.state.progress &&
+            this.props.img.filename ? (
+                <button
+                  type="button"
+                  className="button is-rounded star-button"
+                  onClick={() => this.props.swap(this.props.position - 1, 0)}
+                >
+                  <i className="has-text-warning fas fa-star" />
+                </button>
+              ) : null}
         </figure>
         {this.state.error ? (
           <div
@@ -202,18 +202,20 @@ class Profile extends React.Component {
           'You must select a gender in order to be displayed to other people.'
         ]
       },
-      sexuality: { value: 2, messages: [] },
+      sexuality: { value: 3, messages: [] },
       country: {
         value: '',
         messages: []
       },
       first_name: { value: props.user.first_name, messages: [] },
-      last_name: { value: props.user.last_name, messages: [] }
+      last_name: { value: props.user.last_name, messages: [] },
+      email: { value: props.user.email, messages: [] }
     };
     this.swapImagePosition = this.swapImagePosition.bind(this);
     this.updateAllFilename = this.updateAllFilename.bind(this);
     this.handleChange = this.handleChange.bind(this);
     this.selectChange = this.selectChange.bind(this);
+    this.submitProfile = this.submitProfile.bind(this);
   }
 
   async updateAllFilename() {
@@ -230,8 +232,15 @@ class Profile extends React.Component {
     }
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     this.updateAllFilename();
+    const res = await fetch(`/api/profile/${this.props.user.id}`, {
+      method: 'GET'
+    });
+    if (res.status === 200) {
+      const profile = await res.json();
+      this.setState({ bio: { value: profile.bio, messages: [] }, gender: { value: profile.gender, messages: [] }, sexuality: { value: profile.sexuality, messages: [] }, country: { value: profile.country, messages: [] } })
+    }
   }
 
   swapImagePosition(a, b) {
@@ -286,6 +295,27 @@ class Profile extends React.Component {
   selectChange(event) {
     const target = event.target;
     this.setState({ [target.name]: { value: target.value, messages: [] } });
+  }
+
+  submitProfile(event) {
+    event.preventDefault();
+    if (Object.keys(rules).some(
+      key =>
+        !this.state[key].value ||
+        this.state[key].messages.length > 0
+    ) || this.state.noSubmit) return;
+    this.setState({ noSubmit: true })
+    fetch(`/api/profile/${this.props.user.id}`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-xsrf-token': window.localStorage.getItem('xsrfToken')
+      },
+      body: JSON.stringify({ gender: this.state.gender.value, sexuality: this.state.sexuality.value, country: this.state.country.value, bio: this.state.bio.value, email: this.state.email.value, first_name: this.state.first_name.value, last_name: this.state.last_name.value })
+    }).then(res => {
+      this.setState({ noSubmit: false })
+    })
   }
 
   render() {
@@ -345,13 +375,14 @@ class Profile extends React.Component {
               user={{
                 ...this.props.user,
                 first_name: this.state.first_name.value,
-                last_name: this.state.last_name.value
+                last_name: this.state.last_name.value,
+                bio: this.state.bio.value,
+                country: this.state.country.value
               }}
             />
           </div>
         </div>
-        {/* <div className="card">
-          <div className="card-content"> */}
+
         <p className="title is-4">
           <span className="icon">
             <i className="fas fa-info-circle" />
@@ -361,89 +392,123 @@ class Profile extends React.Component {
         <p className="subtitle is-6">
           Everything you think that people should know about you.
         </p>
-        <form>
-          <div className="fields">
-            <div className="field is-horizontal">
-              <div className="field-body">
+        <div className="card">
+          <div className="card-content">
+            <form onSubmit={this.submitProfile}>
+              <div className="fields">
+                <div className="field is-horizontal">
+                  <div className="field-body">
+                    <Field
+                      placeholder="e.g. Caroline"
+                      label="First Name"
+                      type="text"
+                      name="first_name"
+                      autoComplete="given-name"
+                      onChange={this.handleChange}
+                      value={this.state.first_name.value}
+                      messages={this.state.first_name.messages}
+                    />
+                    <Field
+                      placeholder="e.g. Gilbert"
+                      label="Last Name"
+                      type="text"
+                      name="last_name"
+                      autoComplete="family-name"
+                      onChange={this.handleChange}
+                      value={this.state.last_name.value}
+                      messages={this.state.last_name.messages}
+                    />
+                  </div>
+                </div>
+                <div className="field is-horizontal">
+                  <div className="field-body">
+                    <Field
+                      iconLeft="envelope"
+                      placeholder="e.g. caroline.gilbert@example.com"
+                      label="Email"
+                      type="text"
+                      name="email"
+                      autoComplete="email"
+                      onChange={this.handleChange}
+                      value={this.state.email.value}
+                      messages={this.state.email.messages}
+                    />
+                    <Select
+                      label="Country"
+                      name="country"
+                      expanded={true}
+                      selected={this.state.country.value}
+                      onChange={this.selectChange}
+                      iconLeft="globe"
+                      list={Object.keys(countryList).map(key => {
+                        return {
+                          label: countryList[key],
+                          value: key
+                        };
+                      })}
+                    />
+                  </div>
+                </div>
+                <div className="field is-horizontal">
+                  <div className="field-body">
+                    <Select
+                      label="Gender"
+                      name="gender"
+                      expanded={true}
+                      selected={this.state.gender.value}
+                      messages={this.state.gender.messages}
+                      onChange={this.selectChange}
+                      list={[
+                        { label: 'Male', value: 1 },
+                        { label: 'Female', value: 2 }
+                      ]}
+                    />
+                    <Select
+                      label="Sexuality"
+                      name="sexuality"
+                      expanded={true}
+                      selected={this.state.sexuality.value}
+                      onChange={this.selectChange}
+                      list={[
+                        { label: 'Heterosexual', value: 1 },
+                        { label: 'Homosexual', value: 2 },
+                        { label: 'Bisexual', value: 3 }
+                      ]}
+                    />
+                  </div>
+                </div>
                 <Field
-                  placeholder="e.g. Caroline"
-                  label="First Name"
+                  textarea={true}
+                  placeholder="What did you do study? Where are you from? Don't be shy people will be more inclined to trust you! 😊"
+                  label="Bio (tell us about you)"
+                  name="bio"
                   type="text"
-                  name="first_name"
-                  autoComplete="given-name"
                   onChange={this.handleChange}
-                  value={this.state.first_name.value}
-                  messages={this.state.first_name.messages}
-                />
-                <Field
-                  placeholder="e.g. Gilbert"
-                  label="Last Name"
-                  type="text"
-                  name="last_name"
-                  autoComplete="family-name"
-                  onChange={this.handleChange}
-                  value={this.state.last_name.value}
-                  messages={this.state.last_name.messages}
+                  value={this.state.bio.value}
+                  messages={this.state.bio.messages}
                 />
               </div>
-            </div>
-            <div className="field is-horizontal">
-              <div className="field-body">
-                <Select
-                  label="Gender"
-                  name="gender"
-                  expanded={true}
-                  selected={this.state.gender.value}
-                  messages={this.state.gender.messages}
-                  onChange={this.selectChange}
-                  list={[
-                    { label: 'Male', value: 0 },
-                    { label: 'Female', value: 1 }
-                  ]}
-                />
-                <Select
-                  label="Sexuality"
-                  name="sexuality"
-                  expanded={true}
-                  selected={this.state.sexuality.value}
-                  onChange={this.selectChange}
-                  list={[
-                    { label: 'Heterosexual', value: 0 },
-                    { label: 'Homosexual', value: 1 },
-                    { label: 'Bisexual', value: 2 }
-                  ]}
-                />
-                <Select
-                  label="Country"
-                  name="country"
-                  expanded={true}
-                  selected={this.state.country.value}
-                  onChange={this.selectChange}
-                  iconLeft="globe"
-                  list={Object.keys(countryList).map(key => {
-                    return {
-                      label: countryList[key],
-                      value: key
-                    };
-                  })}
+              <div style={{ textAlign: 'right' }}>
+                <input
+                  className="button is-info"
+                  type="submit"
+                  value="Update"
+                  disabled={
+                    Object.keys(rules).some(
+                      key =>
+                        !this.state[key].value ||
+                        this.state[key].messages.length > 0
+                    ) || this.state.noSubmit
+                      ? true
+                      : null
+                  }
                 />
               </div>
-            </div>
-            <Field
-              textarea={true}
-              placeholder="I sexually Identify as an Attack Helicopter. Ever since I was a boy I dreamed of soaring over the oilfields dropping hot sticky loads on disgusting foreigners. People say to me that a person being a helicopter is Impossible and I'm fucking retarded but I don't care, I'm beautiful. I'm having a plastic surgeon install rotary blades, 30 mm cannons and AMG-114 Hellfire missiles on my body. From now on I want you guys to call me 'Apache' and respect my right to kill from above and kill needlessly. If you can't accept me you're a heliphobe and need to check your vehicle privilege. Thank you for being so understanding."
-              label="Bio (tell us about you)"
-              name="bio"
-              type="text"
-              onChange={this.handleChange}
-              value={this.state.bio.value}
-              messages={this.state.bio.messages}
-            />
+            </form>
           </div>
-        </form>
+        </div>
       </div>
-      //   </div>
-      // </div>
+
     );
   }
 }

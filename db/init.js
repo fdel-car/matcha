@@ -12,7 +12,7 @@ last_name varchar(32),\
 email varchar(64) UNIQUE,\
 password varchar,\
 verified boolean DEFAULT FALSE,\
-verify_token varchar)'
+verify_token uuid DEFAULT NULL)'
     );
     await db.query(
       'CREATE TABLE IF NOT EXISTS images (\
@@ -31,6 +31,15 @@ label varchar UNIQUE NOT NULL)'
 id serial PRIMARY KEY,\
 user_id integer NOT NULL references users(id),\
 tag_id integer NOT NULL references interests(id))'
+    );
+    await db.query(
+      'CREATE TABLE IF NOT EXISTS profiles (\
+id serial PRIMARY KEY,\
+user_id integer NOT NULL references users(id),\
+bio varchar(512) NOT NULL,\
+gender smallint NOT NULL,\
+sexuality smallint DEFAULT 3,\
+country char(2))'
     );
     await db.close();
   }); // Create db if it does not exist yet, otherwise silently fail

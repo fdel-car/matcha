@@ -2,7 +2,8 @@ const {
   checkName,
   checkUsername,
   checkEmail,
-  checkPassword
+  checkPassword,
+  checkBio
 } = require('../components/verification');
 
 const rules = {
@@ -10,7 +11,8 @@ const rules = {
   first_name: checkName,
   username: checkUsername,
   email: checkEmail,
-  password: checkPassword
+  password: checkPassword,
+  bio: checkBio
 };
 
 function validateInput(body) {

@@ -97,6 +97,7 @@ function withLayout(Child, protectedPage = false) {
             />
             <title>Matcha</title>
             <link rel="icon" type="image/png" href="/file/favicon.png" />
+            <link href="file/flags.min.css" rel="stylesheet" type="text/css" />
             <link
               rel="stylesheet"
               href="https://use.fontawesome.com/releases/v5.1.0/css/all.css"
@@ -106,21 +107,21 @@ function withLayout(Child, protectedPage = false) {
             <link rel="stylesheet" href="/_next/static/style.css" />
           </Head>
           {(!!user || (authVerified && !protectedPage)) &&
-          !this.state.loadingPage ? (
-            <>
-              {protectedPage ? <NavigationBar /> : null}
-              <section
-                className={
-                  'section' +
-                  (!protectedPage ? ' anon-layout' : ' has-navbar-fixed-top')
-                }
-              >
-                <Child {...this.props} {...this.state} />
-              </section>
-            </>
-          ) : (
-            <Loading />
-          )}
+            !this.state.loadingPage ? (
+              <>
+                {protectedPage ? <NavigationBar /> : null}
+                <section
+                  className={
+                    'section' +
+                    (!protectedPage ? ' anon-layout' : ' has-navbar-fixed-top')
+                  }
+                >
+                  <Child {...this.props} {...this.state} />
+                </section>
+              </>
+            ) : (
+              <Loading />
+            )}
         </>
       );
     }

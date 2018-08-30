@@ -7,6 +7,8 @@ function escapeRegExp(string) {
 const checkName = name => {
   let messages = [];
   const regex = /^[a-zA-Z \-]+$/;
+  if (name.length > 32)
+    messages.push("Your name can't be more than 32 characters long.");
   if (!regex.test(name))
     messages.push('Only alphabetic characters are allowed.');
   return messages;
