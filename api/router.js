@@ -353,6 +353,7 @@ router.post('/profile/:user_id', async function(req, res, next) {
         [bio, req.body.gender, req.body.sexuality, req.body.country || null, profile.rows[0].id])
     }
     // Edit email, first_and and last_name (the new email could be in use already)
+    res.sendStatus(200);
   } catch (err) {
     next(err)
   }
