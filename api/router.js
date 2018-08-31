@@ -26,11 +26,11 @@ function sendMail(transporter, req, email, token) {
       from: 'Matcha@love.com',
       to: email,
       subject: 'Verify your account, your love is awaiting 🍑',
-      html: `Click <a href="${
-        req.protocol
-        }://localhost:3000/verify?email=${encodeURI(
-          email
-        )}&token=${token}">here</a> to verify your account.`
+      html: `Click <a href="${req.protocol}://${req.get(
+        'Host'
+      )}/verify?email=${encodeURI(
+        email
+      )}&token=${token}">here</a> to verify your account.`
     },
     (err, info) => {
       if (err) console.error(err.message);
@@ -106,7 +106,7 @@ router.post('/verify', async (req, res, next) => {
         'UPDATE users SET verified = TRUE, verify_token = NULL WHERE email = ($1)',
         [email]
       );
-      return res.sendStatus(200);
+      return res.sendStatus(204);
     }
     return res
       .status(403)
@@ -145,7 +145,7 @@ router.post('/verify/resend_email', async (req, res, next) => {
       token
     ]);
     sendMail(transporter, req, email, token);
-    return res.sendStatus(200);
+    return res.sendStatus(204);
   } catch (err) {
     next(err);
   }
@@ -169,7 +169,7 @@ router.post('/user', (req, res, next) => {
     try {
       const { transporter, token } = generateToken();
       await db.query(
-        'INSERT INTO users (id, username, first_name, last_name, email, password, verify_token) VALUES (DEFAULT, $1, $2, $3, $4, $5, $6)',
+        'INSERT INTO users (id, username, first_name, last_name, email, password, verify_token) VALUES (DEFAULT, $1, trim($2), trim($3), trim($4), $5, $6)',
         [username, first_name, last_name, email, hash, token]
       );
       sendMail(transporter, req, email, token);
@@ -225,7 +225,7 @@ router.get('/file/protected/:name', function(req, res, next) {
     root:
       __dirname +
       `/../protected/${
-      imgExtension.indexOf(fileType) >= 0 ? 'img/' : 'other/'
+        imgExtension.indexOf(fileType) >= 0 ? 'img/' : 'other/'
       }`,
     dotfiles: 'deny',
     headers: {
@@ -305,7 +305,7 @@ router.post('/images/:user_id', async function(req, res, next) {
       } catch (err) {
         return next(err);
       }
-      res.sendStatus(200);
+      res.sendStatus(204);
     });
   });
 });
@@ -314,13 +314,20 @@ router.post('/images/:user_id/swap', async function(req, res, next) {
   if (req.params.user_id != req.user.id) return res.sendStatus(401);
   if (!req.body)
     return res.status(400).json({ error: 'No body passed to make the call.' });
-  if (!req.body.a || !req.body.b || (req.body.a === req.body.b) || (req.body.a < 1 || req.body.a > 4) || (req.body.b < 1 || req.body.b > 4)) return res.sendStatus(400);
+  if (
+    !req.body.a ||
+    !req.body.b ||
+    req.body.a === req.body.b ||
+    (req.body.a < 1 || req.body.a > 4) ||
+    (req.body.b < 1 || req.body.b > 4)
+  )
+    return res.sendStatus(400);
   try {
     await db.query(
       'UPDATE images SET position = CASE WHEN position = ($1) THEN ($3) ELSE ($1) END WHERE user_id = ($2) AND (position = ($1) OR position = ($3))',
       [req.body.a, req.params.user_id, req.body.b]
     );
-    res.sendStatus(200);
+    res.sendStatus(204);
   } catch (err) {
     next(err);
   }
@@ -328,10 +335,13 @@ router.post('/images/:user_id/swap', async function(req, res, next) {
 
 router.get('/profile/:user_id', async function(req, res, next) {
   try {
-    const profile = await db.query('SELECT bio, gender, sexuality, country FROM profiles WHERE user_id = ($1)', [req.params.user_id]);
-    res.status(200).send(profile.rows[0]);
+    const profile = await db.query(
+      'SELECT bio, gender, sexuality, country FROM profiles WHERE user_id = ($1)',
+      [req.params.user_id]
+    );
+    res.status(200).send(profile.rows[0] || {});
   } catch (err) {
-    next(err)
+    next(err);
   }
 });
 
@@ -344,18 +354,37 @@ router.post('/profile/:user_id', async function(req, res, next) {
   if (messages.length > 0)
     return res.status(400).json({ error: messages.join(' ') });
   try {
-    const profile = await db.query('SELECT * FROM profiles WHERE user_id = ($1)', [req.params.user_id]);
+    const profile = await db.query(
+      'SELECT * FROM profiles WHERE user_id = ($1)',
+      [req.params.user_id]
+    );
     if (!profile.rows[0]) {
-      await db.query('INSERT INTO profiles (id, user_id, bio, gender, sexuality, country) VALUES(DEFAULT, $1, $2, $3, $4, $5)',
-        [req.params.user_id, bio, req.body.gender, req.body.sexuality, req.body.country || null])
+      await db.query(
+        'INSERT INTO profiles (id, user_id, bio, gender, sexuality, country) VALUES(DEFAULT, $1, trim($2), $3, $4, $5)',
+        [
+          req.params.user_id,
+          bio,
+          req.body.gender,
+          req.body.sexuality,
+          req.body.country || null
+        ]
+      );
     } else {
-      await db.query('UPDATE profiles SET bio = ($1), gender = ($2), sexuality = ($3), country = ($4) WHERE id = ($5)',
-        [bio, req.body.gender, req.body.sexuality, req.body.country || null, profile.rows[0].id])
+      await db.query(
+        'UPDATE profiles SET bio = (trim($1)), gender = ($2), sexuality = ($3), country = ($4) WHERE id = ($5)',
+        [
+          bio,
+          req.body.gender,
+          req.body.sexuality,
+          req.body.country || null,
+          profile.rows[0].id
+        ]
+      );
     }
     // Edit email, first_and and last_name (the new email could be in use already)
-    res.sendStatus(200);
+    res.sendStatus(204);
   } catch (err) {
-    next(err)
+    next(err);
   }
 });
 

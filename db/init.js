@@ -39,6 +39,7 @@ user_id integer NOT NULL references users(id),\
 bio varchar(512) NOT NULL,\
 gender smallint NOT NULL,\
 sexuality smallint DEFAULT 3,\
+birthday date NOT NULL,\
 country char(2))'
     );
     await db.close();

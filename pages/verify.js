@@ -6,7 +6,7 @@ import Router from 'next/router';
 
 const assignClass = statusCode => {
   switch (statusCode) {
-    case 200:
+    case 204:
       return 'is-success';
     case 403:
       return 'is-warning';
@@ -17,9 +17,7 @@ const assignClass = statusCode => {
 
 const ResendEmailBox = props =>
   props.emailSentAgain ? (
-    <span>
-      Another email with a new token has been sent to {props.user.email}
-    </span>
+    <span>Another email with a new token has been sent to {props.email}</span>
   ) : (
     <span>
       If you feel the need to, you can{' '}
@@ -35,9 +33,7 @@ class Verify extends React.Component {
         error:
           'You received a link in your mailbox, it will allow us to verify your account.'
       };
-    const baseUrl = req
-      ? `${req.protocol}://${'localhost:3000' /* req.get('Host') */}`
-      : ''; // See 'Host header attack'
+    const baseUrl = req ? `${req.protocol}://${req.get('Host')}` : ''; // See 'Host header attack'
     const res = await fetch(baseUrl + '/api/verify', {
       method: 'POST',
       headers: {
@@ -45,7 +41,7 @@ class Verify extends React.Component {
       },
       body: JSON.stringify(query)
     });
-    if (res.status === 200) return { statusCode: res.status };
+    if (res.status === 204) return { statusCode: res.status };
     if (res.status === 400 || res.status === 403) {
       const json = await res.json();
       return { error: json.error, statusCode: res.status };
@@ -69,7 +65,7 @@ class Verify extends React.Component {
       },
       body: JSON.stringify({ email: this.props.user.email })
     });
-    if (res.status === 200) this.setState({ emailSentAgain: true });
+    if (res.status === 204) this.setState({ emailSentAgain: true });
     if (res.status === 400 || res.status === 403) {
       const json = await res.json();
       console.error(json);
@@ -80,7 +76,7 @@ class Verify extends React.Component {
     if (
       this.props.user &&
       this.props.user.verified &&
-      this.props.statusCode !== 200
+      this.props.statusCode !== 204
     )
       Router.push('/');
   }
@@ -96,7 +92,7 @@ class Verify extends React.Component {
             <div>
               <h1 className="title">Hey there 👋</h1>
               <h1 className="subtitle">
-                {this.props.statusCode === 200 ? (
+                {this.props.statusCode === 204 ? (
                   <>
                     Your email address is now verified!{' '}
                     <i className="fas fa-check" />{' '}
@@ -112,7 +108,7 @@ class Verify extends React.Component {
               this.props.statusCode
             )}`}
           >
-            {this.props.statusCode === 200 ? (
+            {this.props.statusCode === 204 ? (
               <div>
                 <p>
                   It's all good, you are ready to go.{' '}
@@ -137,7 +133,7 @@ class Verify extends React.Component {
                 <br />
                 {this.props.user && !this.props.user.verified ? (
                   <ResendEmailBox
-                    email={this.props.email}
+                    email={this.props.user.email}
                     emailSentAgain={this.state.emailSentAgain}
                     sendEmail={this.sendEmail.bind(this)}
                   />

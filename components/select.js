@@ -1,5 +1,6 @@
 const Select = props => {
   const isValid = (props.messages || []).length === 0;
+  const className = isValid ? ' is-success' : ' is-danger';
   return (
     <div className="field">
       <label className="label">{props.label}</label>
@@ -14,13 +15,14 @@ const Select = props => {
           className={
             'select' +
             (props.expanded ? ' is-fullwidth' : '') +
-            (isValid ? '' : ' is-danger')
+            (isValid ? '' : ' is-danger') +
+            (props.selected ? className : '')
           }
         >
           <select
             name={props.name}
             onChange={props.onChange}
-            value={props.selected || ""}
+            value={props.selected || ''}
           >
             {props.selected ? null : (
               <option disabled value="">

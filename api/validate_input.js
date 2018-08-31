@@ -1,26 +1,26 @@
 const {
-  checkName,
-  checkUsername,
-  checkEmail,
-  checkPassword,
-  checkBio
-} = require('../components/verification');
+  validateName,
+  validateUsername,
+  validateEmail,
+  validatePassword,
+  validateBio
+} = require('../components/helpers/validation');
 
 const rules = {
-  last_name: checkName,
-  first_name: checkName,
-  username: checkUsername,
-  email: checkEmail,
-  password: checkPassword,
-  bio: checkBio
+  last_name: validateName,
+  first_name: validateName,
+  username: validateUsername,
+  email: validateEmail,
+  password: validatePassword,
+  bio: validateBio
 };
 
 function validateInput(body) {
   let messages = [];
   Object.keys(body).forEach(key => {
     if (!body[key]) return messages.push(`The field ${key} can't be blank.`);
-    if (rules[key] === checkPassword) {
-      return (messages = messages.concat(checkPassword(null)(body[key])));
+    if (rules[key] === validatePassword) {
+      return (messages = messages.concat(validatePassword(null)(body[key])));
     }
     messages = messages.concat(rules[key](body[key]));
   });

@@ -2,39 +2,34 @@ import Link from 'next/link';
 import withLayout from '../components/layout';
 import Field from '../components/field';
 import RedirectDelayed from '../components/redirect_delayed';
+import { formState, formReady } from '../components/helpers/form_handler';
 const {
-  checkName,
-  checkUsername,
-  checkEmail,
-  checkPassword,
+  validateName,
+  validateUsername,
+  validateEmail,
+  validatePassword,
   confirmPassword
-} = require('../components/verification');
+} = require('../components/helpers/validation');
 const sjcl = require('../sjcl');
 
 const rules = {
-  last_name: checkName,
-  first_name: checkName,
-  username: checkUsername,
-  email: checkEmail,
-  password: checkPassword,
-  confirm_password: confirmPassword
+  first_name: { validation: validateName, required: true },
+  last_name: { validation: validateName, required: true },
+  email: { validation: validateEmail, required: true },
+  username: { validation: validateUsername, required: true },
+  password: { validation: validatePassword, required: true },
+  confirm_password: { validation: confirmPassword, required: true }
 };
 
 class Register extends React.Component {
   static async getInitialProps({ req }) {
-    const baseUrl = req
-      ? `${req.protocol}://${'localhost:3000' /* req.get('Host') */}`
-      : ''; // See 'Host header attack'
+    const baseUrl = req ? `${req.protocol}://${req.get('Host')}` : ''; // See 'Host header attack'
     return { baseUrl };
   }
 
   constructor(props) {
     super(props);
-    let obj = {};
-    Object.keys(rules).forEach(key => {
-      obj[key] = { value: '', messages: [] };
-    });
-    this.state = obj;
+    this.state = formState(rules);
     this.handleSubmit = this.handleSubmit.bind(this);
     this.handleChange = this.handleChange.bind(this);
   }
@@ -56,12 +51,7 @@ class Register extends React.Component {
 
   handleSubmit(event) {
     event.preventDefault();
-    if (
-      Object.keys(rules).some(
-        key => !this.state[key].value || this.state[key].messages.length > 0
-      )
-    )
-      return;
+    if (formReady(rules, this.state) || this.state.noSubmit) return;
     const bitArray = sjcl.hash.sha256.hash(this.state.password.value);
     const payload = {
       first_name: this.state.first_name.value,
@@ -103,22 +93,23 @@ class Register extends React.Component {
     const target = event.target;
     let messages = [];
     // Need to review this else if mess
-    if (rules[target.name]) {
+    if (rules[target.name].validation) {
+      const validate = rules[target.name].validation;
       if (target.name === 'confirm_password')
-        messages = rules[target.name](this.state.password.value)(target.value);
+        messages = validate(this.state.password.value)(target.value);
       else if (target.name === 'password') {
-        messages = rules[target.name](this.state.list)(target.value);
+        messages = validate(this.state.list)(target.value);
         this.setState(prevState => {
           return {
             confirm_password: {
               ...prevState.confirm_password,
-              messages: rules['confirm_password'](target.value)(
+              messages: rules['confirm_password'].validation(target.value)(
                 prevState.confirm_password.value
               )
             }
           };
         });
-      } else messages = rules[target.name](target.value);
+      } else messages = validate(target.value);
     }
     this.setState({ [target.name]: { value: target.value, messages } });
   }
@@ -221,11 +212,7 @@ class Register extends React.Component {
                 type="submit"
                 value="Sign up!"
                 disabled={
-                  Object.keys(rules).some(
-                    key =>
-                      !this.state[key].value ||
-                      this.state[key].messages.length > 0
-                  ) || this.state.noSubmit
+                  formReady(rules, this.state) || this.state.noSubmit
                     ? true
                     : null
                 }

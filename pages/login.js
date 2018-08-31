@@ -2,34 +2,29 @@ import Link from 'next/link';
 import withLayout from '../components/layout';
 import Field from '../components/field';
 import Router from 'next/router';
-const { checkUsername, checkPassword } = require('../components/verification');
+import { formState, formReady } from '../components/helpers/form_handler';
+const {
+  validateUsername,
+  validatePassword
+} = require('../components/helpers/validation');
 const sjcl = require('../sjcl');
 
 const rules = {
-  username: checkUsername,
-  password: checkPassword
+  username: { validation: validateUsername, required: true },
+  password: { validation: validatePassword, required: true }
 };
 
 class Login extends React.Component {
   constructor(props) {
     super(props);
-    let obj = {};
-    Object.keys(rules).forEach(key => {
-      obj[key] = { value: '', messages: [] };
-    });
-    this.state = obj;
+    this.state = formState(rules);
     this.handleSubmit = this.handleSubmit.bind(this);
     this.handleChange = this.handleChange.bind(this);
   }
 
   handleSubmit(event) {
     event.preventDefault();
-    if (
-      Object.keys(rules).some(
-        key => !this.state[key].value || this.state[key].messages.length > 0
-      )
-    )
-      return;
+    if (formReady(rules, this.state) || this.state.noSubmit) return;
     const bitArray = sjcl.hash.sha256.hash(this.state.password.value);
     const payload = {
       username: this.state.username.value,
@@ -72,10 +67,11 @@ class Login extends React.Component {
   handleChange(event) {
     const target = event.target;
     let messages = [];
-    if (rules[target.name]) {
+    if (rules[target.name].validation) {
+      const validate = rules[target.name].validation;
       if (target.name === 'password') {
-        messages = rules[target.name](null)(target.value);
-      } else messages = rules[target.name](target.value);
+        messages = validate(null)(target.value);
+      } else messages = validate(target.value);
     }
     this.setState({
       [target.name]: { value: target.value, messages }
@@ -122,11 +118,7 @@ class Login extends React.Component {
               type="submit"
               value="Sign in"
               disabled={
-                Object.keys(rules).some(
-                  key =>
-                    !this.state[key].value ||
-                    this.state[key].messages.length > 0
-                ) || this.state.noSubmit
+                formReady(rules, this.state) || this.state.noSubmit
                   ? true
                   : null
               }

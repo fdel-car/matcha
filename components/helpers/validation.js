@@ -4,7 +4,7 @@ function escapeRegExp(string) {
 }
 
 // Accept char with accents, don't forget
-const checkName = name => {
+const validateName = name => {
   let messages = [];
   const regex = /^[a-zA-Z \-]+$/;
   if (name.length > 32)
@@ -14,7 +14,7 @@ const checkName = name => {
   return messages;
 };
 
-const checkUsername = username => {
+const validateUsername = username => {
   let messages = [];
   const regex = /^[a-zA-Z0-9\-]+$/;
   if (!regex.test(username))
@@ -24,7 +24,7 @@ const checkUsername = username => {
   return messages;
 };
 
-const checkEmail = email => {
+const validateEmail = email => {
   let messages = [];
   const regex = /^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i;
   if (!regex.test(email))
@@ -32,7 +32,7 @@ const checkEmail = email => {
   return messages;
 };
 
-const checkPassword = list => password => {
+const validatePassword = list => password => {
   let messages = [];
   const regex = new RegExp(`^${escapeRegExp(password)}$`, 'm');
   if (list && regex.test(list))
@@ -51,7 +51,7 @@ const confirmPassword = toConfirm => password => {
   return messages;
 };
 
-const checkBio = bio => {
+const validateBio = bio => {
   let messages = [];
   if (bio.length > 512)
     messages.push("Your bio can't be more than 512 characters long.");
@@ -59,10 +59,10 @@ const checkBio = bio => {
 };
 
 module.exports = {
-  checkName,
-  checkUsername,
-  checkEmail,
-  checkPassword,
+  validateName,
+  validateUsername,
+  validateEmail,
+  validatePassword,
   confirmPassword,
-  checkBio
+  validateBio
 };
