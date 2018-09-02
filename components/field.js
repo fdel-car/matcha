@@ -2,11 +2,12 @@ const Field = props => {
   const isValid = (props.messages || []).length === 0;
   const iconLeft = !props.textarea && props.iconLeft;
   const iconRight =
-    !props.textarea &&
     props.value &&
+    props.type !== 'textarea' &&
+    props.type !== 'date' &&
     (isValid ? '-check' : '-exclamation-triangle');
   const className = props.value ? (isValid ? ' is-success' : ' is-danger') : '';
-  const FieldTag = props.textarea ? 'textarea' : 'input';
+  const FieldTag = props.type === 'textarea' ? 'textarea' : 'input';
   return (
     <div className="field">
       <label className="label">{props.label}</label>
@@ -18,8 +19,10 @@ const Field = props => {
         }
       >
         <FieldTag
-          className={(props.textarea ? 'textarea' : 'input') + className}
-          type={props.type}
+          className={
+            (props.type === 'textarea' ? 'textarea' : 'input') + className
+          }
+          type={props.type === 'textarea' ? null : props.type}
           placeholder={props.placeholder}
           value={props.value}
           onChange={props.onChange}

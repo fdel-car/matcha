@@ -3,6 +3,7 @@ const {
   validateUsername,
   validateEmail,
   validatePassword,
+  validateDate,
   validateBio
 } = require('../components/helpers/validation');
 
@@ -12,6 +13,7 @@ const rules = {
   username: validateUsername,
   email: validateEmail,
   password: validatePassword,
+  birthday: validateDate,
   bio: validateBio
 };
 

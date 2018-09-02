@@ -10,12 +10,14 @@ const {
   validateEmail,
   // validatePassword,
   // confirmPassword,
+  validateDate,
   validateBio
 } = require('../components/helpers/validation');
 
 const rules = {
   first_name: { validation: validateName, required: true },
   last_name: { validation: validateName, required: true },
+  birthday: { validation: validateDate, required: true },
   email: { validation: validateEmail, required: true },
   bio: { validation: validateBio, required: true },
   gender: {
@@ -73,6 +75,7 @@ class Profile extends React.Component {
           bio: { value: json.bio, messages: [] },
           gender: { value: json.gender, messages: [] },
           sexuality: { value: json.sexuality, messages: [] },
+          birthday: { value: json.birthday, messages: [] },
           country: { value: json.country, messages: [] }
         });
     }
@@ -147,6 +150,7 @@ class Profile extends React.Component {
       body: JSON.stringify({
         gender: this.state.gender.value,
         sexuality: this.state.sexuality.value,
+        birthday: this.state.birthday.value,
         country: this.state.country.value,
         bio: this.state.bio.value,
         email: this.state.email.value,
@@ -217,6 +221,7 @@ class Profile extends React.Component {
                 first_name: this.state.first_name.value,
                 last_name: this.state.last_name.value,
                 bio: this.state.bio.value,
+                birthday: this.state.birthday.value,
                 country: this.state.country.value
               }}
             />
@@ -258,6 +263,15 @@ class Profile extends React.Component {
                       value={this.state.last_name.value}
                       messages={this.state.last_name.messages}
                     />
+                    <Field
+                      iconLeft="birthday-cake"
+                      label="Birthday"
+                      type="date"
+                      name="birthday"
+                      onChange={this.handleChange}
+                      value={this.state.birthday.value}
+                      messages={this.state.birthday.messages}
+                    />
                   </div>
                 </div>
                 <div className="field is-horizontal">
@@ -266,7 +280,7 @@ class Profile extends React.Component {
                       iconLeft="envelope"
                       placeholder="e.g. caroline.gilbert@example.com"
                       label="Email"
-                      type="text"
+                      type="email"
                       name="email"
                       autoComplete="email"
                       onChange={this.handleChange}
@@ -318,11 +332,10 @@ class Profile extends React.Component {
                   </div>
                 </div>
                 <Field
-                  textarea={true}
                   placeholder="What did you do study? Where are you from? Don't be shy people will be more inclined to trust you! 😊"
                   label="Bio (tell us about you)"
                   name="bio"
-                  type="text"
+                  type="textarea"
                   onChange={this.handleChange}
                   value={this.state.bio.value}
                   messages={this.state.bio.messages}

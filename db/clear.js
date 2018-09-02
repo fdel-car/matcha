@@ -5,6 +5,7 @@ const fs = require('fs');
   await db.query('DROP TABLE IF EXISTS interest_list CASCADE');
   await db.query('DROP TABLE IF EXISTS interests CASCADE');
   await db.query('DROP TABLE IF EXISTS images CASCADE');
+  await db.query('DROP TABLE IF EXISTS profiles CASCADE');
   await db.query('DROP TABLE IF EXISTS users CASCADE');
   const uploadDir = `${__dirname}/../protected/img/`;
   const files = fs.readdirSync(uploadDir);

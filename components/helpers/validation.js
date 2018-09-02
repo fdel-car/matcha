@@ -51,6 +51,13 @@ const confirmPassword = toConfirm => password => {
   return messages;
 };
 
+const validateDate = date => {
+  let messages = [];
+  const regex = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
+  if (!regex.test(date)) messages.push('This date is not well formatted.');
+  return messages;
+};
+
 const validateBio = bio => {
   let messages = [];
   if (bio.length > 512)
@@ -64,5 +71,6 @@ module.exports = {
   validateEmail,
   validatePassword,
   confirmPassword,
+  validateDate,
   validateBio
 };

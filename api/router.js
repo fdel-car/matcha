@@ -336,7 +336,7 @@ router.post('/images/:user_id/swap', async function(req, res, next) {
 router.get('/profile/:user_id', async function(req, res, next) {
   try {
     const profile = await db.query(
-      'SELECT bio, gender, sexuality, country FROM profiles WHERE user_id = ($1)',
+      "SELECT bio, gender, sexuality, to_char(birthday, 'YYYY-MM-DD') as birthday, country FROM profiles WHERE user_id = ($1)",
       [req.params.user_id]
     );
     res.status(200).send(profile.rows[0] || {});
@@ -349,8 +349,14 @@ router.post('/profile/:user_id', async function(req, res, next) {
   if (req.params.user_id != req.user.id) return res.sendStatus(401);
   if (!req.body)
     return res.status(400).json({ error: 'No body passed to make the call.' });
-  const { email, first_name, last_name, bio } = req.body;
-  const messages = validateInput({ email, last_name, first_name, bio });
+  const { email, first_name, last_name, birthday, bio } = req.body;
+  const messages = validateInput({
+    email,
+    last_name,
+    first_name,
+    birthday,
+    bio
+  });
   if (messages.length > 0)
     return res.status(400).json({ error: messages.join(' ') });
   try {
@@ -360,22 +366,24 @@ router.post('/profile/:user_id', async function(req, res, next) {
     );
     if (!profile.rows[0]) {
       await db.query(
-        'INSERT INTO profiles (id, user_id, bio, gender, sexuality, country) VALUES(DEFAULT, $1, trim($2), $3, $4, $5)',
+        'INSERT INTO profiles (id, user_id, bio, gender, sexuality, birthday, country) VALUES(DEFAULT, $1, trim($2), $3, $4, $5, $6)',
         [
           req.params.user_id,
           bio,
           req.body.gender,
           req.body.sexuality,
+          birthday,
           req.body.country || null
         ]
       );
     } else {
       await db.query(
-        'UPDATE profiles SET bio = (trim($1)), gender = ($2), sexuality = ($3), country = ($4) WHERE id = ($5)',
+        'UPDATE profiles SET bio = (trim($1)), gender = ($2), sexuality = ($3), birthday = ($4), country = ($5) WHERE id = ($6)',
         [
           bio,
           req.body.gender,
           req.body.sexuality,
+          birthday,
           req.body.country || null,
           profile.rows[0].id
         ]
