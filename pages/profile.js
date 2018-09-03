@@ -30,6 +30,52 @@ const rules = {
   country: {}
 };
 
+class TagsInput extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { tag_list: [], tag: '' };
+    this.handleChange = this.handleChange.bind(this);
+    this.handleKeyPress = this.handleKeyPress.bind(this);
+  }
+
+  handleChange(event) {
+    this.setState({ tag: event.target.value })
+  }
+
+  handleKeyPress(event) {
+    if (event.key === 'Enter') {
+      this.setState(prevState => {
+        const clone = prevState.tag_list;
+        clone.push(this.state.tag);
+        return { tag_list: clone, tag: '' }
+      })
+    }
+  }
+
+  render() {
+    return (
+      <div className="field">
+        <label className="label">Interests</label>
+        <div className="control">
+          <input onChange={this.handleChange} onKeyPress={this.handleKeyPress}
+            className="input" type="text" value={this.state.tag} placeholder="Css, Skate..." />
+        </div>
+        {this.state.tag_list.length > 0 ?
+          <div className="field is-grouped is-grouped-multiline" style={{ marginTop: '0.5rem' }} >
+            {this.state.tag_list.map((tag, i) =>
+              <div key={i} className="control">
+                <div className="tags has-addons">
+                  <a className="tag is-primary">{tag}</a>
+                  <a className="tag is-delete"></a>
+                </div>
+              </div>
+            )}
+          </div> : null}
+      </div>
+    )
+  }
+}
+
 class Profile extends React.Component {
   constructor(props) {
     super(props);
@@ -340,6 +386,7 @@ class Profile extends React.Component {
                   value={this.state.bio.value}
                   messages={this.state.bio.messages}
                 />
+                <TagsInput />
               </div>
               <div style={{ textAlign: 'right' }}>
                 <input
