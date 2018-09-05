@@ -26,6 +26,7 @@ const Field = props => {
           placeholder={props.placeholder}
           value={props.value}
           onChange={props.onChange}
+          onKeyPress={props.onKeyPress}
           name={props.name}
           autoComplete={props.autoComplete}
         />

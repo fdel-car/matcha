@@ -30,48 +30,70 @@ const rules = {
   country: {}
 };
 
-class TagsInput extends React.Component {
+class InterestsInput extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { tag_list: [], tag: '' };
+    this.state = { interest_list: [], interest: { value: '', messages: [] } };
     this.handleChange = this.handleChange.bind(this);
     this.handleKeyPress = this.handleKeyPress.bind(this);
   }
 
   handleChange(event) {
-    this.setState({ tag: event.target.value })
+    const value = event.target.value.toLowerCase().replace(/^\w/, c => c.toUpperCase());
+    this.setState({ [event.target.name]: { value, messages: [] } })
   }
 
   handleKeyPress(event) {
-    if (event.key === 'Enter') {
-      this.setState(prevState => {
-        const clone = prevState.tag_list;
-        clone.push(this.state.tag);
-        return { tag_list: clone, tag: '' }
+    if (event.key === 'Enter' && this.state.interest.value) {
+      if (this.state.interest_list.includes(this.state.interest.value))
+        return this.setState(prevState => {
+          const clone = prevState.interest.messages.concat('Already used.')
+          return { interest: { value: prevState.interest.value, messages: clone } }
+        });
+      fetch(`/api/profile/interest/${this.props.user.id}`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-xsrf-token': window.localStorage.getItem('xsrfToken')
+        }, body: JSON.stringify({ interest: this.state.interest.value })
+      }).then(res => {
+        if (res.status === 204) {
+          this.setState(prevState => {
+            const clone = prevState.interest_list.concat(this.state.interest.value);
+            return { interest_list: clone, interest: { value: '', messages: [] } }
+          })
+        }
       })
     }
   }
 
   render() {
     return (
-      <div className="field">
-        <label className="label">Interests</label>
-        <div className="control">
-          <input onChange={this.handleChange} onKeyPress={this.handleKeyPress}
-            className="input" type="text" value={this.state.tag} placeholder="Css, Skate..." />
-        </div>
-        {this.state.tag_list.length > 0 ?
+      <>
+        <Field
+          placeholder="Css, Skate..."
+          label="Interests"
+          type="text"
+          name="interest"
+          onChange={this.handleChange}
+          value={this.state.interest.value}
+          messages={this.state.interest.messages}
+          onKeyPress={this.handleKeyPress}
+          autoComplete="off"
+        />
+        {this.state.interest_list.length > 0 ?
           <div className="field is-grouped is-grouped-multiline" style={{ marginTop: '0.5rem' }} >
-            {this.state.tag_list.map((tag, i) =>
+            {this.state.interest_list.map((interest, i) =>
               <div key={i} className="control">
                 <div className="tags has-addons">
-                  <a className="tag is-primary">{tag}</a>
+                  <span className="tag is-primary has-text-weight-bold">{interest}</span>
                   <a className="tag is-delete"></a>
                 </div>
               </div>
             )}
           </div> : null}
-      </div>
+      </>
     )
   }
 }
@@ -386,7 +408,7 @@ class Profile extends React.Component {
                   value={this.state.bio.value}
                   messages={this.state.bio.messages}
                 />
-                <TagsInput />
+                <InterestsInput user={this.props.user} />
               </div>
               <div style={{ textAlign: 'right' }}>
                 <input

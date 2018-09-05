@@ -225,7 +225,7 @@ router.get('/file/protected/:name', function(req, res, next) {
     root:
       __dirname +
       `/../protected/${
-        imgExtension.indexOf(fileType) >= 0 ? 'img/' : 'other/'
+      imgExtension.indexOf(fileType) >= 0 ? 'img/' : 'other/'
       }`,
     dotfiles: 'deny',
     headers: {
@@ -394,6 +394,25 @@ router.post('/profile/:user_id', async function(req, res, next) {
   } catch (err) {
     next(err);
   }
+});
+
+router.post('/profile/interest/:user_id', async function(req, res, next) {
+  if (req.params.user_id != req.user.id) return res.sendStatus(401);
+  if (!req.body)
+    return res.status(400).json({ error: 'No body passed to make the call.' });
+  let { interest } = req.body;
+  interest = interest.toLowerCase().replace(/^\w/, c => c.toUpperCase());
+  console.log(interest)
+  try {
+    const inDB = await db.query('SELECT * FROM interests WHERE label = ($1)', [interest]);
+    if (!inDB.rows[0]) {
+      await db.query('INSERT INTO interests (id, label) VALUES (DEFAULT, ($1))', [interest]);
+    }
+    console.log(inDB.rows[0]);
+  } catch (err) {
+    next(err);
+  }
+  res.sendStatus(204);
 });
 
 module.exports = router;
