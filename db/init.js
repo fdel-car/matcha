@@ -30,7 +30,7 @@ label varchar UNIQUE NOT NULL)'
       'CREATE TABLE IF NOT EXISTS interest_list (\
 id serial PRIMARY KEY,\
 user_id integer NOT NULL references users(id),\
-tag_id integer NOT NULL references interests(id))'
+interest_id integer NOT NULL references interests(id))'
     );
     await db.query(
       'CREATE TABLE IF NOT EXISTS profiles (\

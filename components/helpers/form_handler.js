@@ -3,7 +3,7 @@ const formState = rules => {
   Object.keys(rules).forEach(key => {
     state[key] = {
       value: rules[key].default || '',
-      messages: rules[key].warnings || []
+      errors: rules[key].warnings || []
     };
   });
   return state;
@@ -13,7 +13,7 @@ const formReady = (rules, state) => {
   return Object.keys(rules).some(
     key =>
       (!state[key].value && rules[key].required) ||
-      state[key].messages.length > 0
+      state[key].errors.length > 0
   );
 };
 

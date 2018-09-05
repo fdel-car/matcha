@@ -1,5 +1,5 @@
 const Field = props => {
-  const isValid = (props.messages || []).length === 0;
+  const isValid = (props.errors || []).length === 0;
   const iconLeft = !props.textarea && props.iconLeft;
   const iconRight =
     props.value &&
@@ -43,7 +43,7 @@ const Field = props => {
       </div>
       {props.value && !isValid ? (
         <div className={'help is-danger'}>
-          {props.messages.map((message, i) => (
+          {props.errors.map((message, i) => (
             <p key={i}>{message}</p>
           ))}
         </div>

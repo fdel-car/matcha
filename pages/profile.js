@@ -30,26 +30,28 @@ const rules = {
   country: {}
 };
 
-class InterestsInput extends React.Component {
+class InterestsInput extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = { interest_list: [], interest: { value: '', messages: [] } };
+    this.state = { interest: { value: '', errors: [] } };
     this.handleChange = this.handleChange.bind(this);
     this.handleKeyPress = this.handleKeyPress.bind(this);
+    this.deleteInterest = this.deleteInterest.bind(this);
   }
 
   handleChange(event) {
     const value = event.target.value.toLowerCase().replace(/^\w/, c => c.toUpperCase());
-    this.setState({ [event.target.name]: { value, messages: [] } })
+    this.setState({ [event.target.name]: { value, errors: [] } })
   }
 
   handleKeyPress(event) {
     if (event.key === 'Enter' && this.state.interest.value) {
-      if (this.state.interest_list.includes(this.state.interest.value))
+      if (this.props.interests.map(interest => interest.label).includes(this.state.interest.value)) {
         return this.setState(prevState => {
-          const clone = prevState.interest.messages.concat('Already used.')
-          return { interest: { value: prevState.interest.value, messages: clone } }
+          const clone = prevState.interest.errors.concat('This interest is already mentioned on your profile.')
+          return { interest: { value: prevState.interest.value, errors: clone } }
         });
+      }
       fetch(`/api/profile/interest/${this.props.user.id}`, {
         method: 'POST',
         credentials: 'same-origin',
@@ -59,13 +61,25 @@ class InterestsInput extends React.Component {
         }, body: JSON.stringify({ interest: this.state.interest.value })
       }).then(res => {
         if (res.status === 204) {
-          this.setState(prevState => {
-            const clone = prevState.interest_list.concat(this.state.interest.value);
-            return { interest_list: clone, interest: { value: '', messages: [] } }
-          })
+          this.props.updateInterests();
+          this.setState({ interest: { value: '', errors: [] } });
         }
       })
     }
+  }
+
+  deleteInterest(id) {
+    fetch(`/api/profile/interest/${this.props.user.id}`, {
+      method: 'DELETE',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-xsrf-token': window.localStorage.getItem('xsrfToken')
+      }, body: JSON.stringify({ id })
+    }).then(res => {
+      if (res.status === 204)
+        this.props.updateInterests();
+    })
   }
 
   render() {
@@ -78,17 +92,18 @@ class InterestsInput extends React.Component {
           name="interest"
           onChange={this.handleChange}
           value={this.state.interest.value}
-          messages={this.state.interest.messages}
+          errors={this.state.interest.errors}
           onKeyPress={this.handleKeyPress}
           autoComplete="off"
         />
-        {this.state.interest_list.length > 0 ?
-          <div className="field is-grouped is-grouped-multiline" style={{ marginTop: '0.5rem' }} >
-            {this.state.interest_list.map((interest, i) =>
-              <div key={i} className="control">
+        <small>For everything related to this field you don't need to click 'Update' below, it's saved instantaneously.</small>
+        {this.props.interests.length > 0 ?
+          <div className="field is-grouped is-grouped-multiline" style={{ marginTop: '0.75rem' }} >
+            {this.props.interests.map((interest) =>
+              <div key={interest.id} className="control">
                 <div className="tags has-addons">
-                  <span className="tag is-primary has-text-weight-bold">{interest}</span>
-                  <a className="tag is-delete"></a>
+                  <span className="tag is-primary has-text-weight-bold">{interest.label}</span>
+                  <a onClick={() => this.deleteInterest(interest.id)} className="tag is-delete"></a>
                 </div>
               </div>
             )}
@@ -109,9 +124,10 @@ class Profile extends React.Component {
     rules.first_name.default = props.user.first_name;
     rules.last_name.default = props.user.last_name;
     rules.email.default = props.user.email;
-    this.state = { images, ...formState(rules) };
+    this.state = { images, ...formState(rules), interests: [] };
     this.swapImagePosition = this.swapImagePosition.bind(this);
     this.updateAllFilename = this.updateAllFilename.bind(this);
+    this.updateInterests = this.updateInterests.bind(this);
     this.handleChange = this.handleChange.bind(this);
     this.selectChange = this.selectChange.bind(this);
     this.submitProfile = this.submitProfile.bind(this);
@@ -131,22 +147,35 @@ class Profile extends React.Component {
     }
   }
 
+  async updateInterests() {
+    fetch(`/api/profile/interests/${this.props.user.id}`, {
+      method: 'GET'
+    }).then(async res => {
+      if (res.status === 200) {
+        const interests = await res.json();
+        this.setState({ interests })
+      }
+    })
+  }
+
   async componentDidMount() {
     this.updateAllFilename();
-    const res = await fetch(`/api/profile/${this.props.user.id}`, {
+    fetch(`/api/profile/${this.props.user.id}`, {
       method: 'GET'
-    });
-    if (res.status === 200) {
-      const json = await res.json();
-      if (Object.keys(json).length > 0)
-        this.setState({
-          bio: { value: json.bio, messages: [] },
-          gender: { value: json.gender, messages: [] },
-          sexuality: { value: json.sexuality, messages: [] },
-          birthday: { value: json.birthday, messages: [] },
-          country: { value: json.country, messages: [] }
-        });
-    }
+    }).then(async res => {
+      if (res.status === 200) {
+        const json = await res.json();
+        if (Object.keys(json).length > 0)
+          this.setState({
+            bio: { value: json.bio, errors: [] },
+            gender: { value: json.gender, errors: [] },
+            sexuality: { value: json.sexuality, errors: [] },
+            birthday: { value: json.birthday, errors: [] },
+            country: { value: json.country, errors: [] }
+          });
+      }
+    })
+    this.updateInterests();
   }
 
   swapImagePosition(a, b) {
@@ -176,32 +205,32 @@ class Profile extends React.Component {
 
   handleChange(event) {
     const target = event.target;
-    let messages = [];
+    let errors = [];
     // Need to review this else if mess
     if (rules[target.name].validation) {
       const validate = rules[target.name].validation;
       if (target.name === 'confirm_password')
-        messages = validate(this.state.password.value)(target.value);
+        errors = validate(this.state.password.value)(target.value);
       else if (target.name === 'password') {
-        messages = validate(this.state.list)(target.value);
+        errors = validate(this.state.list)(target.value);
         this.setState(prevState => {
           return {
             confirm_password: {
               ...prevState.confirm_password,
-              messages: rules['confirm_password'].validation(target.value)(
+              errors: rules['confirm_password'].validation(target.value)(
                 prevState.confirm_password.value
               )
             }
           };
         });
-      } else messages = validate(target.value);
+      } else errors = validate(target.value);
     }
-    this.setState({ [target.name]: { value: target.value, messages } });
+    this.setState({ [target.name]: { value: target.value, errors } });
   }
 
   selectChange(event) {
     const target = event.target;
-    this.setState({ [target.name]: { value: target.value, messages: [] } });
+    this.setState({ [target.name]: { value: target.value, errors: [] } });
   }
 
   submitProfile(event) {
@@ -225,8 +254,14 @@ class Profile extends React.Component {
         first_name: this.state.first_name.value,
         last_name: this.state.last_name.value
       })
-    }).then(res => {
+    }).then(async res => {
       this.setState({ noSubmit: false });
+      if (res.status === 400) {
+        const json = await res.json();
+        if (json.fieldName) {
+          this.setState({ [json.fieldName]: { value: this.state[json.fieldName].value, errors: [json.error] } })
+        }
+      }
     });
   }
 
@@ -290,7 +325,8 @@ class Profile extends React.Component {
                 last_name: this.state.last_name.value,
                 bio: this.state.bio.value,
                 birthday: this.state.birthday.value,
-                country: this.state.country.value
+                country: this.state.country.value,
+                interests: this.state.interests
               }}
             />
           </div>
@@ -307,6 +343,8 @@ class Profile extends React.Component {
         </p>
         <div className="card">
           <div className="card-content">
+            <InterestsInput user={this.props.user} interests={this.state.interests} updateInterests={this.updateInterests} />
+            <hr />
             <form onSubmit={this.submitProfile}>
               <div className="fields">
                 <div className="field is-horizontal">
@@ -319,7 +357,7 @@ class Profile extends React.Component {
                       autoComplete="given-name"
                       onChange={this.handleChange}
                       value={this.state.first_name.value}
-                      messages={this.state.first_name.messages}
+                      errors={this.state.first_name.errors}
                     />
                     <Field
                       placeholder="e.g. Gilbert"
@@ -329,7 +367,7 @@ class Profile extends React.Component {
                       autoComplete="family-name"
                       onChange={this.handleChange}
                       value={this.state.last_name.value}
-                      messages={this.state.last_name.messages}
+                      errors={this.state.last_name.errors}
                     />
                     <Field
                       iconLeft="birthday-cake"
@@ -338,7 +376,7 @@ class Profile extends React.Component {
                       name="birthday"
                       onChange={this.handleChange}
                       value={this.state.birthday.value}
-                      messages={this.state.birthday.messages}
+                      errors={this.state.birthday.errors}
                     />
                   </div>
                 </div>
@@ -353,7 +391,7 @@ class Profile extends React.Component {
                       autoComplete="email"
                       onChange={this.handleChange}
                       value={this.state.email.value}
-                      messages={this.state.email.messages}
+                      errors={this.state.email.errors}
                     />
                     <Select
                       label="Country"
@@ -378,7 +416,7 @@ class Profile extends React.Component {
                       name="gender"
                       expanded={true}
                       selected={this.state.gender.value}
-                      messages={this.state.gender.messages}
+                      errors={this.state.gender.errors}
                       onChange={this.selectChange}
                       list={[
                         { label: 'Male', value: 1 },
@@ -406,9 +444,8 @@ class Profile extends React.Component {
                   type="textarea"
                   onChange={this.handleChange}
                   value={this.state.bio.value}
-                  messages={this.state.bio.messages}
+                  errors={this.state.bio.errors}
                 />
-                <InterestsInput user={this.props.user} />
               </div>
               <div style={{ textAlign: 'right' }}>
                 <input

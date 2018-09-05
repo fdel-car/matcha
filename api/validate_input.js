@@ -18,15 +18,15 @@ const rules = {
 };
 
 function validateInput(body) {
-  let messages = [];
+  let errors = [];
   Object.keys(body).forEach(key => {
-    if (!body[key]) return messages.push(`The field ${key} can't be blank.`);
+    if (!body[key]) return errors.push(`The field ${key} can't be blank.`);
     if (rules[key] === validatePassword) {
-      return (messages = messages.concat(validatePassword(null)(body[key])));
+      return (errors = errors.concat(validatePassword(null)(body[key])));
     }
-    messages = messages.concat(rules[key](body[key]));
+    errors = errors.concat(rules[key](body[key]));
   });
-  return messages;
+  return errors;
 }
 
 module.exports = validateInput;

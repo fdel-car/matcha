@@ -56,7 +56,7 @@ class Login extends React.Component {
           this.setState(prevState => {
             return {
               noSubmit: false,
-              [fieldName]: { ...prevState[fieldName], messages: [json.error] }
+              [fieldName]: { ...prevState[fieldName], errors: [json.error] }
             };
           });
         }
@@ -66,15 +66,15 @@ class Login extends React.Component {
 
   handleChange(event) {
     const target = event.target;
-    let messages = [];
+    let errors = [];
     if (rules[target.name].validation) {
       const validate = rules[target.name].validation;
       if (target.name === 'password') {
-        messages = validate(null)(target.value);
-      } else messages = validate(target.value);
+        errors = validate(null)(target.value);
+      } else errors = validate(target.value);
     }
     this.setState({
-      [target.name]: { value: target.value, messages }
+      [target.name]: { value: target.value, errors }
     });
   }
 
@@ -99,7 +99,7 @@ class Login extends React.Component {
                 type="text"
                 onChange={this.handleChange}
                 value={this.state.username.value}
-                messages={this.state.username.messages}
+                errors={this.state.username.errors}
               />
               <Field
                 iconLeft="lock"
@@ -110,7 +110,7 @@ class Login extends React.Component {
                 type="password"
                 onChange={this.handleChange}
                 value={this.state.password.value}
-                messages={this.state.password.messages}
+                errors={this.state.password.errors}
               />
             </div>
             <input

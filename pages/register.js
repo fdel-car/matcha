@@ -77,11 +77,11 @@ class Register extends React.Component {
       } else if (contentType === 'application/json;') {
         const json = await response.json();
         if (!json.fieldName) return console.error(json.error);
-        const clone = this.state[json.fieldName].messages;
+        const clone = this.state[json.fieldName].errors.slice();
         if (!clone.includes(json.error)) clone.push(json.error);
         this.setState(prevState => {
           return {
-            [json.fieldName]: { ...prevState[json.fieldName], messages: clone },
+            [json.fieldName]: { ...prevState[json.fieldName], errors: clone },
             noSubmit: false
           };
         });
@@ -91,27 +91,27 @@ class Register extends React.Component {
 
   handleChange(event) {
     const target = event.target;
-    let messages = [];
+    let errors = [];
     // Need to review this else if mess
     if (rules[target.name].validation) {
       const validate = rules[target.name].validation;
       if (target.name === 'confirm_password')
-        messages = validate(this.state.password.value)(target.value);
+        errors = validate(this.state.password.value)(target.value);
       else if (target.name === 'password') {
-        messages = validate(this.state.list)(target.value);
+        errors = validate(this.state.list)(target.value);
         this.setState(prevState => {
           return {
             confirm_password: {
               ...prevState.confirm_password,
-              messages: rules['confirm_password'].validation(target.value)(
+              errors: rules['confirm_password'].validation(target.value)(
                 prevState.confirm_password.value
               )
             }
           };
         });
-      } else messages = validate(target.value);
+      } else errors = validate(target.value);
     }
-    this.setState({ [target.name]: { value: target.value, messages } });
+    this.setState({ [target.name]: { value: target.value, errors } });
   }
 
   render() {
@@ -136,7 +136,7 @@ class Register extends React.Component {
                     autoComplete="given-name"
                     onChange={this.handleChange}
                     value={this.state.first_name.value}
-                    messages={this.state.first_name.messages}
+                    errors={this.state.first_name.errors}
                   />
                   <Field
                     placeholder="e.g. Gilbert"
@@ -146,7 +146,7 @@ class Register extends React.Component {
                     autoComplete="family-name"
                     onChange={this.handleChange}
                     value={this.state.last_name.value}
-                    messages={this.state.last_name.messages}
+                    errors={this.state.last_name.errors}
                   />
                 </div>
               </div>
@@ -159,7 +159,7 @@ class Register extends React.Component {
                 type="text"
                 onChange={this.handleChange}
                 value={this.state.username.value}
-                messages={this.state.username.messages}
+                errors={this.state.username.errors}
               />
               <Field
                 iconLeft="envelope"
@@ -170,7 +170,7 @@ class Register extends React.Component {
                 type="email"
                 onChange={this.handleChange}
                 value={this.state.email.value}
-                messages={this.state.email.messages}
+                errors={this.state.email.errors}
               />
               <Field
                 iconLeft="lock"
@@ -181,7 +181,7 @@ class Register extends React.Component {
                 type="password"
                 onChange={this.handleChange}
                 value={this.state.password.value}
-                messages={this.state.password.messages}
+                errors={this.state.password.errors}
               />
               <Field
                 iconLeft="lock"
@@ -192,7 +192,7 @@ class Register extends React.Component {
                 type="password"
                 onChange={this.handleChange}
                 value={this.state.confirm_password.value}
-                messages={this.state.confirm_password.messages}
+                errors={this.state.confirm_password.errors}
               />
             </div>
             {this.state.redirectUser ? (
@@ -207,17 +207,17 @@ class Register extends React.Component {
                 />
               </div>
             ) : (
-              <input
-                className="button is-info"
-                type="submit"
-                value="Sign up!"
-                disabled={
-                  formReady(rules, this.state) || this.state.noSubmit
-                    ? true
-                    : null
-                }
-              />
-            )}
+                <input
+                  className="button is-info"
+                  type="submit"
+                  value="Sign up!"
+                  disabled={
+                    formReady(rules, this.state) || this.state.noSubmit
+                      ? true
+                      : null
+                  }
+                />
+              )}
           </form>
           <hr style={{ margin: '0.75rem 0' }} />
           <div style={{ textAlign: 'right' }}>

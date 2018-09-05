@@ -1,5 +1,5 @@
 const Select = props => {
-  const isValid = (props.messages || []).length === 0;
+  const isValid = (props.errors || []).length === 0;
   const className = isValid ? ' is-success' : ' is-danger';
   return (
     <div className="field">
@@ -44,7 +44,7 @@ const Select = props => {
       </div>
       {!isValid ? (
         <div className={'help is-danger'}>
-          {props.messages.map((message, i) => (
+          {props.errors.map((message, i) => (
             <p key={i}>{message}</p>
           ))}
         </div>

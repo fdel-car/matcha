@@ -5,64 +5,64 @@ function escapeRegExp(string) {
 
 // Accept char with accents, don't forget
 const validateName = name => {
-  let messages = [];
+  let errors = [];
   const regex = /^[a-zA-Z \-]+$/;
   if (name.length > 32)
-    messages.push("Your name can't be more than 32 characters long.");
+    errors.push("Your name can't be more than 32 characters long.");
   if (!regex.test(name))
-    messages.push('Only alphabetic characters are allowed.');
-  return messages;
+    errors.push('Only alphabetic characters are allowed.');
+  return errors;
 };
 
 const validateUsername = username => {
-  let messages = [];
+  let errors = [];
   const regex = /^[a-zA-Z0-9\-]+$/;
   if (!regex.test(username))
-    messages.push(
+    errors.push(
       "Your username must only contain alphanumeric characters or '-'."
     );
-  return messages;
+  return errors;
 };
 
 const validateEmail = email => {
-  let messages = [];
+  let errors = [];
   const regex = /^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i;
   if (!regex.test(email))
-    messages.push('This email address is not well formatted.');
-  return messages;
+    errors.push('This email address is not well formatted.');
+  return errors;
 };
 
 const validatePassword = list => password => {
-  let messages = [];
+  let errors = [];
   const regex = new RegExp(`^${escapeRegExp(password)}$`, 'm');
   if (list && regex.test(list))
-    messages.push(
+    errors.push(
       "This password has been breached multiple times, you shouldn't use it anymore."
     );
   if (password.length < 8)
-    messages.push('Your password must be at least 8 characters long.');
-  return messages;
+    errors.push('Your password must be at least 8 characters long.');
+  return errors;
 };
 
 const confirmPassword = toConfirm => password => {
-  let messages = [];
+  let errors = [];
   if (password !== toConfirm)
-    messages.push('This password does not match the previous one.');
-  return messages;
+    errors.push('This password does not match the previous one.');
+  return errors;
 };
 
 const validateDate = date => {
-  let messages = [];
+  let errors = [];
   const regex = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
-  if (!regex.test(date)) messages.push('This date is not well formatted.');
-  return messages;
+  if (!regex.test(date)) errors.push('This date is not well formatted.');
+  return errors;
 };
 
 const validateBio = bio => {
-  let messages = [];
+  let errors = [];
   if (bio.length > 512)
-    messages.push("Your bio can't be more than 512 characters long.");
-  return messages;
+    errors.push("Your bio can't be more than 512 characters long.");
+  return errors;
 };
 
 module.exports = {
