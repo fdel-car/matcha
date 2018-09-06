@@ -9,14 +9,15 @@ const validateName = name => {
   const regex = /^[a-zA-Z \-]+$/;
   if (name.length > 32)
     errors.push("Your name can't be more than 32 characters long.");
-  if (!regex.test(name))
-    errors.push('Only alphabetic characters are allowed.');
+  if (!regex.test(name)) errors.push('Only alphabetic characters are allowed.');
   return errors;
 };
 
 const validateUsername = username => {
   let errors = [];
   const regex = /^[a-zA-Z0-9\-]+$/;
+  if (username.length > 32)
+    errors.push("Your username can't be more than 32 characters long.");
   if (!regex.test(username))
     errors.push(
       "Your username must only contain alphanumeric characters or '-'."
@@ -27,6 +28,8 @@ const validateUsername = username => {
 const validateEmail = email => {
   let errors = [];
   const regex = /^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i;
+  if (email.length > 64)
+    errors.push("Your email address can't be more than 64 characters long.");
   if (!regex.test(email))
     errors.push('This email address is not well formatted.');
   return errors;

@@ -225,7 +225,7 @@ router.get('/file/protected/:name', function(req, res, next) {
     root:
       __dirname +
       `/../protected/${
-      imgExtension.indexOf(fileType) >= 0 ? 'img/' : 'other/'
+        imgExtension.indexOf(fileType) >= 0 ? 'img/' : 'other/'
       }`,
     dotfiles: 'deny',
     headers: {
@@ -360,7 +360,10 @@ router.post('/profile/:user_id', async function(req, res, next) {
   if (errors.length > 0)
     return res.status(400).json({ error: errors.join(' ') });
   try {
-    const profile = await db.query('SELECT * FROM profiles WHERE user_id = ($1)', [req.user.id]);
+    const profile = await db.query(
+      'SELECT * FROM profiles WHERE user_id = ($1)',
+      [req.user.id]
+    );
     if (!profile.rows[0]) {
       await db.query(
         'INSERT INTO profiles (id, user_id, bio, gender, sexuality, birthday, country) VALUES(DEFAULT, $1, trim($2), $3, $4, $5, $6)',
@@ -386,7 +389,10 @@ router.post('/profile/:user_id', async function(req, res, next) {
         ]
       );
     }
-    await db.query('UPDATE users SET first_name = trim($1), last_name = trim($2), email = trim($3) WHERE id = ($4)', [first_name, last_name, email, req.user.id])
+    await db.query(
+      'UPDATE users SET first_name = trim($1), last_name = trim($2), email = trim($3) WHERE id = ($4)',
+      [first_name, last_name, email, req.user.id]
+    );
     res.sendStatus(204);
   } catch (err) {
     if (err.code == 23505) {
@@ -400,7 +406,10 @@ router.post('/profile/:user_id', async function(req, res, next) {
 
 router.get('/profile/interests/:user_id', async function(req, res, next) {
   try {
-    const interests = await db.query('SELECT * FROM interests WHERE id IN (SELECT interest_id FROM interest_list WHERE user_id = ($1))', [req.params.user_id]);
+    const interests = await db.query(
+      'SELECT * FROM interests WHERE id IN (SELECT interest_id FROM interest_list WHERE user_id = ($1))',
+      [req.params.user_id]
+    );
     res.status(200).send(interests.rows);
   } catch (err) {
     next(err);
@@ -415,15 +424,33 @@ router.post('/profile/interest/:user_id', async function(req, res, next) {
   if (!interest) return res.sendStatus(400);
   interest = interest.toLowerCase().replace(/^\w/, c => c.toUpperCase());
   try {
-    const inDB = await db.query('SELECT * FROM interests WHERE label = ($1)', [interest]);
-    const id = !inDB.rows[0] ? (await db.query('INSERT INTO interests (id, label) VALUES (DEFAULT, $1) RETURNING id', [interest])).rows[0].id : inDB.rows[0].id;
-    db.query('SELECT * FROM interest_list WHERE user_id = ($1) AND interest_id = ($2)', [req.user.id, id])
+    const inDB = await db.query('SELECT * FROM interests WHERE label = ($1)', [
+      interest
+    ]);
+    const id = !inDB.rows[0]
+      ? (await db.query(
+          'INSERT INTO interests (id, label) VALUES (DEFAULT, $1) RETURNING id',
+          [interest]
+        )).rows[0].id
+      : inDB.rows[0].id;
+    db.query(
+      'SELECT * FROM interest_list WHERE user_id = ($1) AND interest_id = ($2)',
+      [req.user.id, id]
+    )
       .then(async result => {
-        if (result.rows[0]) return res.status(400).json({ error: "You already have this interest mentioned in your profile." });
-        await db.query('INSERT INTO interest_list (id, user_id, interest_id) VALUES(DEFAULT, $1, $2)', [req.user.id, id]);
+        if (result.rows[0])
+          return res
+            .status(400)
+            .json({
+              error: 'You already have this interest mentioned in your profile.'
+            });
+        await db.query(
+          'INSERT INTO interest_list (id, user_id, interest_id) VALUES(DEFAULT, $1, $2)',
+          [req.user.id, id]
+        );
         res.sendStatus(204);
       })
-      .catch(err => next(err))
+      .catch(err => next(err));
   } catch (err) {
     next(err);
   }
@@ -434,13 +461,22 @@ router.delete('/profile/interest/:user_id', async function(req, res, next) {
   if (!req.body)
     return res.status(400).json({ error: 'No body passed to make the call.' });
   if (!req.body.id)
-    return res.status(400).json({ error: 'No id (to delete) passed in the body.' });
+    return res
+      .status(400)
+      .json({ error: 'No id (to delete) passed in the body.' });
   try {
-    await db.query('DELETE FROM interest_list WHERE user_id = ($1) AND interest_id = ($2)', [req.user.id, req.body.id]);
-    db.query('SELECT FROM interest_list WHERE interest_id = ($1)', [req.body.id])
+    await db.query(
+      'DELETE FROM interest_list WHERE user_id = ($1) AND interest_id = ($2)',
+      [req.user.id, req.body.id]
+    );
+    db.query('SELECT FROM interest_list WHERE interest_id = ($1)', [
+      req.body.id
+    ])
       .then(async inDB => {
         if (inDB.rows.length === 0) {
-          await db.query('DELETE FROM interests WHERE id = ($1)', [req.body.id]);
+          await db.query('DELETE FROM interests WHERE id = ($1)', [
+            req.body.id
+          ]);
         }
       })
       .catch(err => next(err));
@@ -448,6 +484,13 @@ router.delete('/profile/interest/:user_id', async function(req, res, next) {
   } catch (err) {
     next(err);
   }
+});
+
+router.get('/users', async function(req, res, next) {
+  const users = await db.query(
+    'SELECT id, username, first_name, last_name FROM users WHERE verified = TRUE'
+  );
+  res.status(200).send(users.rows);
 });
 
 module.exports = router;
