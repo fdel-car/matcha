@@ -40,6 +40,8 @@ bio varchar(512) NOT NULL,\
 gender smallint NOT NULL,\
 sexuality smallint DEFAULT 3,\
 birthday date NOT NULL,\
+lat float8 DEFAULT NULL,\
+long float8 DEFAULT NULL,\
 country char(2))'
     );
     await db.close();
