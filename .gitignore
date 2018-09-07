@@ -1,3 +1,6 @@
 node_modules/
 .next/
 protected/img/*
+!protected/img/male-*.jpg
+!protected/img/female-*.jpg
+.DS_Store

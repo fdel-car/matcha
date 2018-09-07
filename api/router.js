@@ -225,7 +225,7 @@ router.get('/file/protected/:name', function(req, res, next) {
     root:
       __dirname +
       `/../protected/${
-        imgExtension.indexOf(fileType) >= 0 ? 'img/' : 'other/'
+      imgExtension.indexOf(fileType) >= 0 ? 'img/' : 'other/'
       }`,
     dotfiles: 'deny',
     headers: {
@@ -366,7 +366,7 @@ router.post('/profile/:user_id', async function(req, res, next) {
     );
     if (!profile.rows[0]) {
       await db.query(
-        'INSERT INTO profiles (id, user_id, bio, gender, sexuality, birthday, country) VALUES(DEFAULT, $1, trim($2), $3, $4, $5, $6)',
+        'INSERT INTO profiles (id, user_id, bio, gender, sexuality, birthday, country) VALUES (DEFAULT, $1, trim($2), $3, $4, $5, $6)',
         [
           req.user.id,
           bio,
@@ -429,9 +429,9 @@ router.post('/profile/interest/:user_id', async function(req, res, next) {
     ]);
     const id = !inDB.rows[0]
       ? (await db.query(
-          'INSERT INTO interests (id, label) VALUES (DEFAULT, $1) RETURNING id',
-          [interest]
-        )).rows[0].id
+        'INSERT INTO interests (id, label) VALUES (DEFAULT, $1) RETURNING id',
+        [interest]
+      )).rows[0].id
       : inDB.rows[0].id;
     db.query(
       'SELECT * FROM interest_list WHERE user_id = ($1) AND interest_id = ($2)',
@@ -487,8 +487,9 @@ router.delete('/profile/interest/:user_id', async function(req, res, next) {
 });
 
 router.get('/users', async function(req, res, next) {
+  const offset = req.query.offset || 0;
   const users = await db.query(
-    'SELECT id, username, first_name, last_name FROM users WHERE verified = TRUE'
+    'SELECT id, username, first_name, last_name FROM users WHERE verified = TRUE LIMIT 50 OFFSET $1', [offset]
   );
   res.status(200).send(users.rows);
 });

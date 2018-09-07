@@ -11,7 +11,8 @@ const fs = require('fs');
   const files = fs.readdirSync(uploadDir);
   files.forEach(filename => {
     if (fs.statSync(uploadDir + filename).isFile()) {
-      fs.unlinkSync(uploadDir + filename);
+      if (!/^(male|female)\-.*\.jpg$/.test(filename))
+        fs.unlinkSync(uploadDir + filename);
     }
   });
   await db.close();
