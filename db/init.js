@@ -1,5 +1,6 @@
 const db = require('./index');
 const { exec } = require('child_process');
+const hobbies = require('./hobbies');
 
 (function main() {
   exec('createdb matcha-db', async function(err, stdout, stderr) {
@@ -44,6 +45,20 @@ lat float8 DEFAULT NULL,\
 long float8 DEFAULT NULL,\
 country char(2))'
     );
+    const promises = hobbies.map(hobby => {
+      hobby = hobby.toLowerCase().replace(/^[0-9]*\w/, c => c.toUpperCase());
+      return db
+        .query(
+          'INSERT INTO interests (id, label) VALUES (DEFAULT, $1)',
+          [hobby],
+          false,
+          false
+        )
+        .catch(err => {
+          // Silently fail, it's useless to call init multiple times
+        });
+    });
+    await Promise.all(promises);
     await db.close();
   }); // Create db if it does not exist yet, otherwise silently fail
 })();

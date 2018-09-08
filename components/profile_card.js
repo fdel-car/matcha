@@ -22,11 +22,11 @@ const ProfileCard = props => (
     <div className="card-content">
       <div className="media">
         <div className="media-content">
-          <p className="title is-4">
+          <p className="title is-4" style={{ marginBottom: 0 }}>
             {props.user.country ? (
               <>
                 <img
-                  style={{ marginBottom: '-0.2rem' }}
+                  style={{ marginBottom: '-0.25rem' }}
                   src="file/blank.gif"
                   className={'flag flag-' + props.user.country.toLowerCase()}
                   alt={countryList[props.user.country]}
@@ -34,13 +34,28 @@ const ProfileCard = props => (
               </>
             ) : null}
             {props.user.first_name + ' ' + props.user.last_name}
-            {props.user.birthday ? (
-              <small style={{ fontWeight: 500 }}>
-                , {toAge(props.user.birthday)}
-              </small>
-            ) : null}
           </p>
-          <p className="subtitle is-6">@{props.user.username}</p>
+          {props.user.birthday ? (
+            <span style={{ fontWeight: 500 }}>
+              • {toAge(props.user.birthday)} years old
+              {props.user.distance ? (
+                <>
+                  ,{' '}
+                  <small
+                    style={{
+                      fontStyle: 'italic',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {Math.round(props.user.distance)} km
+                  </small>
+                </>
+              ) : null}
+            </span>
+          ) : null}
+          <p style={{ marginTop: '0.25rem' }} className="subtitle is-6">
+            @{props.user.username}
+          </p>
         </div>
       </div>
       <div

@@ -40,16 +40,26 @@ class InterestsInput extends React.PureComponent {
   }
 
   handleChange(event) {
-    const value = event.target.value.toLowerCase().replace(/^\w/, c => c.toUpperCase());
-    this.setState({ [event.target.name]: { value, errors: [] } })
+    const value = event.target.value
+      .toLowerCase()
+      .replace(/^[0-9]*\w/, c => c.toUpperCase());
+    this.setState({ [event.target.name]: { value, errors: [] } });
   }
 
   handleKeyPress(event) {
     if (event.key === 'Enter' && this.state.interest.value) {
-      if (this.props.interests.map(interest => interest.label).includes(this.state.interest.value)) {
+      if (
+        this.props.interests
+          .map(interest => interest.label)
+          .includes(this.state.interest.value)
+      ) {
         return this.setState(prevState => {
-          const clone = prevState.interest.errors.concat('This interest is already mentioned on your profile.')
-          return { interest: { value: prevState.interest.value, errors: clone } }
+          const clone = prevState.interest.errors.concat(
+            'This interest is already mentioned on your profile.'
+          );
+          return {
+            interest: { value: prevState.interest.value, errors: clone }
+          };
         });
       }
       fetch(`/api/profile/interest/${this.props.user.id}`, {
@@ -58,13 +68,14 @@ class InterestsInput extends React.PureComponent {
         headers: {
           'Content-Type': 'application/json',
           'x-xsrf-token': window.localStorage.getItem('xsrfToken')
-        }, body: JSON.stringify({ interest: this.state.interest.value })
+        },
+        body: JSON.stringify({ interest: this.state.interest.value })
       }).then(res => {
         if (res.status === 204) {
           this.props.updateInterests();
           this.setState({ interest: { value: '', errors: [] } });
         }
-      })
+      });
     }
   }
 
@@ -75,11 +86,11 @@ class InterestsInput extends React.PureComponent {
       headers: {
         'Content-Type': 'application/json',
         'x-xsrf-token': window.localStorage.getItem('xsrfToken')
-      }, body: JSON.stringify({ id })
+      },
+      body: JSON.stringify({ id })
     }).then(res => {
-      if (res.status === 204)
-        this.props.updateInterests();
-    })
+      if (res.status === 204) this.props.updateInterests();
+    });
   }
 
   render() {
@@ -96,20 +107,32 @@ class InterestsInput extends React.PureComponent {
           onKeyPress={this.handleKeyPress}
           autoComplete="off"
         />
-        <small>For everything related to this field you don't need to click 'Update' below, it's saved instantaneously.</small>
-        {this.props.interests.length > 0 ?
-          <div className="field is-grouped is-grouped-multiline" style={{ marginTop: '0.75rem' }} >
-            {this.props.interests.map((interest) =>
+        <small>
+          For everything related to this field you don't need to click 'Update'
+          below, it's saved instantaneously.
+        </small>
+        {this.props.interests.length > 0 ? (
+          <div
+            className="field is-grouped is-grouped-multiline"
+            style={{ marginTop: '0.75rem' }}
+          >
+            {this.props.interests.map(interest => (
               <div key={interest.id} className="control">
                 <div className="tags has-addons">
-                  <span className="tag is-primary has-text-weight-bold">{interest.label}</span>
-                  <a onClick={() => this.deleteInterest(interest.id)} className="tag is-delete"></a>
+                  <span className="tag is-primary has-text-weight-bold">
+                    {interest.label}
+                  </span>
+                  <a
+                    onClick={() => this.deleteInterest(interest.id)}
+                    className="tag is-delete"
+                  />
                 </div>
               </div>
-            )}
-          </div> : null}
+            ))}
+          </div>
+        ) : null}
       </>
-    )
+    );
   }
 }
 
@@ -153,9 +176,9 @@ class Profile extends React.Component {
     }).then(async res => {
       if (res.status === 200) {
         const interests = await res.json();
-        this.setState({ interests })
+        this.setState({ interests });
       }
-    })
+    });
   }
 
   async componentDidMount() {
@@ -174,7 +197,7 @@ class Profile extends React.Component {
             country: { value: json.country, errors: [] }
           });
       }
-    })
+    });
     this.updateInterests();
   }
 
@@ -259,7 +282,12 @@ class Profile extends React.Component {
       if (res.status === 400) {
         const json = await res.json();
         if (json.fieldName) {
-          this.setState({ [json.fieldName]: { value: this.state[json.fieldName].value, errors: [json.error] } })
+          this.setState({
+            [json.fieldName]: {
+              value: this.state[json.fieldName].value,
+              errors: [json.error]
+            }
+          });
         }
       }
     });
@@ -343,7 +371,11 @@ class Profile extends React.Component {
         </p>
         <div className="card">
           <div className="card-content">
-            <InterestsInput user={this.props.user} interests={this.state.interests} updateInterests={this.updateInterests} />
+            <InterestsInput
+              user={this.props.user}
+              interests={this.state.interests}
+              updateInterests={this.updateInterests}
+            />
             <hr />
             <form onSubmit={this.submitProfile}>
               <div className="fields">

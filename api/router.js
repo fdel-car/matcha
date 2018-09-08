@@ -202,7 +202,9 @@ router.use(function(req, res, next) {
         return res.sendStatus(401); // CSRF attack!
       const user = await db.query(
         'SELECT id, username, first_name, last_name, email, verified FROM users WHERE id = ($1)',
-        [decoded.uid]
+        [decoded.uid],
+        false,
+        false
       );
       if (!user.rows[0]) return res.sendStatus(400); // Very unlikely
       req.user = user.rows[0];
@@ -225,7 +227,7 @@ router.get('/file/protected/:name', function(req, res, next) {
     root:
       __dirname +
       `/../protected/${
-      imgExtension.indexOf(fileType) >= 0 ? 'img/' : 'other/'
+        imgExtension.indexOf(fileType) >= 0 ? 'img/' : 'other/'
       }`,
     dotfiles: 'deny',
     headers: {
@@ -336,7 +338,7 @@ router.post('/images/:user_id/swap', async function(req, res, next) {
 router.get('/profile/:user_id', async function(req, res, next) {
   try {
     const profile = await db.query(
-      "SELECT bio, gender, sexuality, to_char(birthday, 'YYYY-MM-DD') as birthday, country FROM profiles WHERE user_id = ($1)",
+      "SELECT bio, gender, sexuality, to_char(birthday, 'YYYY-MM-DD') as birthday, country, lat, long FROM profiles WHERE user_id = ($1)",
       [req.params.user_id]
     );
     res.status(200).send(profile.rows[0] || {});
@@ -422,16 +424,16 @@ router.post('/profile/interest/:user_id', async function(req, res, next) {
     return res.status(400).json({ error: 'No body passed to make the call.' });
   let { interest } = req.body;
   if (!interest) return res.sendStatus(400);
-  interest = interest.toLowerCase().replace(/^\w/, c => c.toUpperCase());
+  interest = interest.toLowerCase().replace(/^[0-9]*\w/, c => c.toUpperCase());
   try {
     const inDB = await db.query('SELECT * FROM interests WHERE label = ($1)', [
       interest
     ]);
     const id = !inDB.rows[0]
       ? (await db.query(
-        'INSERT INTO interests (id, label) VALUES (DEFAULT, $1) RETURNING id',
-        [interest]
-      )).rows[0].id
+          'INSERT INTO interests (id, label) VALUES (DEFAULT, $1) RETURNING id',
+          [interest]
+        )).rows[0].id
       : inDB.rows[0].id;
     db.query(
       'SELECT * FROM interest_list WHERE user_id = ($1) AND interest_id = ($2)',
@@ -439,11 +441,9 @@ router.post('/profile/interest/:user_id', async function(req, res, next) {
     )
       .then(async result => {
         if (result.rows[0])
-          return res
-            .status(400)
-            .json({
-              error: 'You already have this interest mentioned in your profile.'
-            });
+          return res.status(400).json({
+            error: 'You already have this interest mentioned in your profile.'
+          });
         await db.query(
           'INSERT INTO interest_list (id, user_id, interest_id) VALUES(DEFAULT, $1, $2)',
           [req.user.id, id]
@@ -487,11 +487,42 @@ router.delete('/profile/interest/:user_id', async function(req, res, next) {
 });
 
 router.get('/users', async function(req, res, next) {
-  const offset = req.query.offset || 0;
-  const users = await db.query(
-    'SELECT id, username, first_name, last_name FROM users WHERE verified = TRUE LIMIT 50 OFFSET $1', [offset]
-  );
-  res.status(200).send(users.rows);
+  try {
+    const genders = (req.query.genders && req.query.genders.split(',')) || [
+      1,
+      2
+    ];
+    const lat = parseFloat(req.query.lat);
+    const long = parseFloat(req.query.long);
+    if (!lat || !long)
+      return res.status(400).send({
+        error: 'latitude and longitude are both mandatory query parameter.'
+      });
+    const users = await db.query(
+      'SELECT 2 * 6371 * asin(sqrt((sin(radians((lat - $2) / 2))) ^ 2 + cos(radians($2)) * cos(radians(lat)) * (sin(radians((long - $3) / 2))) ^ 2)) as distance,\
+      users.id, username, first_name, last_name, bio, birthday, country, filename FROM users\
+        INNER JOIN profiles ON users.id = profiles.user_id\
+        LEFT JOIN images ON users.id = images.user_id\
+          WHERE position = 1 AND verified = TRUE AND gender = ANY($1::int[]) AND users.id != ($4)',
+      [genders, lat, long, req.user.id]
+    );
+    const promises = users.rows.map(user => {
+      return db
+        .query(
+          'SELECT * FROM interests WHERE id IN (SELECT interest_id FROM interest_list WHERE user_id = ($1))',
+          [user.id],
+          false,
+          false
+        )
+        .then(res => {
+          user.interests = res.rows;
+        });
+    });
+    await Promise.all(promises);
+    res.status(200).send(users.rows);
+  } catch (err) {
+    next(err);
+  }
 });
 
 module.exports = router;

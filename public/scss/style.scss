@@ -159,3 +159,10 @@ section.has-navbar-fixed-top {
   padding-left: 0.5rem !important;
   padding-right: 0.5rem !important;
 }
+
+@media screen and (max-width: 568px) {
+  .column.is-full-tiny {
+    flex: none;
+    width: 100%;
+  }
+}
