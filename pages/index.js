@@ -1,6 +1,7 @@
 import withLayout from '../components/layout';
 import ProfileCard from '../components/profile_card';
 import Loading from '../components/loading';
+import Link from 'next/link';
 
 const getTargetedGenders = (gender, sexuality) => {
   if (sexuality === 1) {
@@ -13,7 +14,7 @@ const getTargetedGenders = (gender, sexuality) => {
 class Home extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { loading: true, users: [], profile: {} };
+    this.state = { loading: true, users: [], profile: {}, interests: [] };
     this.updateUserList = this.updateUserList.bind(this);
   }
 
@@ -30,30 +31,60 @@ class Home extends React.Component {
     ).then(async res => {
       if (res.status === 200) {
         const users = await res.json();
-        users.sort(function(a, b) {
-          return a.distance - b.distance; // Need an algo here to order the users...
+        let minDist = Infinity;
+        let maxDist = 0;
+        for (let i = 0; i < users.length; i++) {
+          if (users[i].distance > maxDist) maxDist = users[i].distance;
+          if (users[i].distance < minDist) minDist = users[i].distance;
+        }
+        const level = (maxDist / 10);
+        users.sort((a, b) => {
+          let scoreA = -Math.round((a.distance - minDist) / level) * 10;
+          let scoreB = -Math.round((b.distance - minDist) / level) * 10;
+          a.interests.forEach(interest => {
+            for (let i = 0; i < this.state.interests.length; i++) {
+              if (this.state.interests[i].id === interest.id) scoreA += 20;
+            }
+          })
+          b.interests.forEach(interest => {
+            for (let i = 0; i < this.state.interests.length; i++) {
+              if (this.state.interests[i].id === interest.id) scoreB += 20;
+            }
+          })
+          a.distance > b.distance ? scoreB++ : scoreA++;
+          return scoreB - scoreA;
         });
-        console.log(users);
         this.setState({ users, loading: false });
       }
     });
   }
 
   async componentDidMount() {
-    const res = await fetch(`/api/profile/${this.props.user.id}`, {
-      method: 'GET',
-      credentials: 'same-origin'
-    });
-    if (res.status === 200) {
-      const profile = await res.json();
-      this.setState({ profile }, () => this.updateUserList(0));
+    const urls = [`/api/profile/${this.props.user.id}`, `/api/profile/interests/${this.props.user.id}`];
+    const promises = urls.map(url => fetch(url, { method: 'GET', credentials: 'same-origin' }));
+    const results = await Promise.all(promises);
+    if (results.every(res => res.status === 200)) {
+      const profile = await results[0].json();
+      const interests = await results[1].json();
+      if (Object.keys(profile).length > 0)
+        this.setState({ profile, interests }, () => this.updateUserList(0));
+      else this.setState({ unauthorized: true })
     }
   }
 
   render() {
     return (
       <div className="container">
-        {!this.state.loading ? (
+        <p className="title is-4">
+          <span className="icon">
+            <i className="far fa-lightbulb" />
+          </span>{' '}
+          Suggestions
+        </p>
+        <p className="subtitle is-6">
+          Some users who might interest you based on your location and hobbies.
+        </p>
+        {!this.state.loading && !this.state.unauthorized ?
           <div className="columns is-mobile is-multiline">
             {this.state.users.map(user => (
               <div
@@ -69,9 +100,9 @@ class Home extends React.Component {
               </div>
             ))}
           </div>
-        ) : (
-          <Loading />
-        )}
+          : this.state.unauthorized ?
+            <div>Hi {this.props.user.username} 👋, in order to see the other users on the app you first need to give some informations about you <Link href="/profile"><a>here</a></Link></div>
+            : <Loading />}
       </div>
     );
   }
