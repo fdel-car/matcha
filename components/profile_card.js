@@ -1,4 +1,5 @@
 import countryList from '../public/other/country-list';
+import Link from 'next/link';
 
 function toAge(dateString) {
   let birthday = new Date(dateString).getTime();
@@ -7,18 +8,20 @@ function toAge(dateString) {
 
 const ProfileCard = props => (
   <div className="card">
-    <div className="card-image">
-      <figure className="image is-square">
-        <img
-          src={
-            props.img && props.img.filename
-              ? `/api/file/protected/${props.img.filename}`
-              : '/file/default.jpg'
-          }
-          alt="Large img"
-        />
-      </figure>
-    </div>
+    <Link as={`/user/${props.user.id}`} href={`/user?id=${props.user.id}`}>
+      <a className="card-image">
+        <figure className="image is-square">
+          <img
+            src={
+              props.img && props.img.filename
+                ? `/api/file/protected/${props.img.filename}`
+                : '/file/default.jpg'
+            }
+            alt="Large img"
+          />
+        </figure>
+      </a>
+    </Link>
     <div className="card-content">
       <div className="media">
         <div className="media-content">
@@ -27,7 +30,7 @@ const ProfileCard = props => (
               <>
                 <img
                   style={{ marginBottom: '-0.25rem' }}
-                  src="file/blank.gif"
+                  src="/file/blank.gif"
                   className={'flag flag-' + props.user.country.toLowerCase()}
                   alt={countryList[props.user.country]}
                 />{' '}

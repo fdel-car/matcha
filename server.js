@@ -40,6 +40,11 @@ app
       });
     });
 
+    server.get('/user/:id', (req, res) => {
+      const queryParams = { id: req.params.id }
+      return app.render(req, res, '/user', queryParams);
+    })
+
     server.get('*', (req, res) => {
       return handle(req, res);
     });

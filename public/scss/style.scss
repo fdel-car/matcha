@@ -166,3 +166,10 @@ section.has-navbar-fixed-top {
     width: 100%;
   }
 }
+
+img.zoomable {
+  transition: all 300ms;
+  &:hover {
+    transform: scale(1.1);
+  }
+}

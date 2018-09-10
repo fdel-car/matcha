@@ -219,6 +219,18 @@ router.get('/user', function(req, res, next) {
   res.status(200).json(req.user);
 });
 
+router.get('/user/:id', async function(req, res, next) {
+  try {
+    const user = await db.query(
+      'SELECT username, first_name, last_name FROM users WHERE id = ($1)',
+      [req.params.id]
+    );
+    res.status(200).json(user.rows[0] || {});
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/file/protected/:name', function(req, res, next) {
   const fileName = req.params.name;
   let fileType = fileName.split('.');
