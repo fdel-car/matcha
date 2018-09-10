@@ -53,7 +53,7 @@ function withLayout(Child, protectedPage = false) {
     }
 
     handleRouteChange(url) {
-      console.log(`Starting to load ${url}...`);
+      console.debug(`Starting to load ${url}...`);
       this.setState({
         loadingPage:
           !this.props.authVerified && !this.state.authVerified ? true : false
@@ -98,7 +98,7 @@ function withLayout(Child, protectedPage = false) {
             <title>Matcha</title>
             <link rel="icon" type="image/png" href="/file/favicon.png" />
             <link href="file/flags.min.css" rel="stylesheet" type="text/css" />
-            <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous" />
+            <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossOrigin="anonymous" />
             <link rel="stylesheet" href="/_next/static/style.css" />
           </Head>
           {(!!user || (authVerified && !protectedPage)) &&

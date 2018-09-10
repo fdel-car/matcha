@@ -39,7 +39,7 @@ class Login extends React.Component {
       },
       body: JSON.stringify(payload)
     }).then(async response => {
-      const contentType = response.headers.get('Content-Type').split(' ')[0];
+      const contentType = (response.headers.get('Content-Type') || '').split(' ')[0];
       if (contentType === 'application/json;') {
         const json = await response.json();
         if (response.status === 200) {

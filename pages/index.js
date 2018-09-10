@@ -14,8 +14,9 @@ const getTargetedGenders = (gender, sexuality) => {
 class Home extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { loading: true, users: [], profile: {}, interests: [] };
+    this.state = { loading: true, users: [], profile: {}, interests: [], unauthorized: false, locationMissing: false };
     this.updateUserList = this.updateUserList.bind(this);
+    this.locateUser = this.locateUser.bind(this);
   }
 
   updateUserList(offset) {
@@ -29,6 +30,11 @@ class Home extends React.Component {
         credentials: 'same-origin'
       }
     ).then(async res => {
+      if (res.status === 400) {
+        const json = await res.json();
+        if (json.error === "latitude and longitude are both mandatory query parameter.")
+          this.setState({ loading: false, unauthorized: true, locationMissing: true })
+      }
       if (res.status === 200) {
         const users = await res.json();
         let minDist = Infinity;
@@ -59,6 +65,48 @@ class Home extends React.Component {
     });
   }
 
+  locateUser() {
+    this.setState({ loading: true })
+    const storeLocation = (lat, long) => {
+      fetch(`/api/profile/location/${this.props.user.id}`,
+        {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-xsrf-token': window.localStorage.getItem('xsrfToken')
+          },
+          body: JSON.stringify({ lat, long })
+        }
+      ).then(res => {
+        if (res.status === 204) {
+          this.state.profile.lat = lat;
+          this.state.profile.long = long;
+          this.setState({ profile: this.state.profile, unauthorized: false, locationMissing: false }, () => this.updateUserList(0));
+        }
+      })
+    }
+    const locateByIp = async () => {
+      const res = await fetch(`https://ipinfo.io?token=${process.env.ACCESS_TOKEN}`,
+        { headers: { Accept: 'application/json' } });
+      if (res.status === 200) {
+        const json = await res.json();
+        const loc = json.loc.split(',');
+        storeLocation(loc[0], loc[1]);
+      }
+    }
+    const geoSuccess = function(position) {
+      storeLocation(position.coords.latitude, position.coords.longitude);
+    };
+    const geoError = function(error) {
+      console.debug(error);
+      locateByIp()
+    };
+    if (navigator.geolocation)
+      navigator.geolocation.getCurrentPosition(geoSuccess, geoError);
+    else locateByIp();
+  }
+
   async componentDidMount() {
     const urls = [`/api/profile/${this.props.user.id}`, `/api/profile/interests/${this.props.user.id}`];
     const promises = urls.map(url => fetch(url, { method: 'GET', credentials: 'same-origin' }));
@@ -85,23 +133,28 @@ class Home extends React.Component {
           Some users who might interest you based on your location and hobbies.
         </p>
         {!this.state.loading && !this.state.unauthorized ?
-          <div className="columns is-mobile is-multiline">
-            {this.state.users.map(user => (
-              <div
-                key={user.id}
-                className="column is-full-tiny is-half-mobile is-one-third-tablet is-one-quarter-widescreen"
-              >
-                <ProfileCard
-                  img={{ filename: user.filename }}
-                  user={{
-                    ...user
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-          : this.state.unauthorized ?
-            <div>Hi {this.props.user.username} 👋, in order to see the other users on the app you first need to give some informations about you <Link href="/profile"><a>here</a></Link></div>
+          this.state.users.length === 0 ?
+            <div>It seems that there is no one matching your criteria 😕.</div>
+            :
+            <div className="columns is-mobile is-multiline">
+              {this.state.users.map(user => (
+                <div
+                  key={user.id}
+                  className="column is-full-tiny is-half-mobile is-one-third-tablet is-one-quarter-widescreen"
+                >
+                  <ProfileCard
+                    img={{ filename: user.filename }}
+                    user={{
+                      ...user
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          : !this.state.loading && this.state.unauthorized ?
+            this.state.locationMissing ?
+              <div>Hey {this.props.user.username} ✌️, in order to see the other users on the app you you have to <a onClick={this.locateUser}>let us locate you</a>.</div>
+              : <div>Hi {this.props.user.username} 👋, in order to see the other users on the app you first need to give some informations about you <Link href="/profile"><a>here</a></Link>.</div>
             : <Loading />}
       </div>
     );

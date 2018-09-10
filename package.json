@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon -w server.js -w api server.js",
+    "dev": "nodemon -r dotenv/config -w server.js -w api server.js",
     "build": "next build",
-    "start": "NODE_ENV=production node server.js"
+    "start": "NODE_ENV=production node -r dotenv/config server.js"
   },
   "keywords": [],
   "author": "fdel-car",
@@ -19,6 +19,7 @@
     "body-parser": "^1.18.3",
     "bulma": "^0.7.1",
     "cookie-parser": "^1.4.3",
+    "dotenv": "^6.0.0",
     "express": "^4.16.3",
     "formidable": "^1.2.1",
     "jsonwebtoken": "^8.3.0",

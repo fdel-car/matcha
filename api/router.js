@@ -11,7 +11,7 @@ const fs = require('fs');
 const uploadDir = `${__dirname}/../protected/img/`;
 const imgExtension = ['gif', 'png', 'jpg', 'jpeg', 'ico'];
 
-const generateJWT = (uid, xsrfToken) => jwt.sign({ uid, xsrfToken }, 'secret');
+const generateJWT = (uid, xsrfToken) => jwt.sign({ uid, xsrfToken }, process.env.SECRET);
 function generateToken() {
   const nodemailer = require('nodemailer');
   const transporter = nodemailer.createTransport({
@@ -195,7 +195,7 @@ router.use(function(req, res, next) {
   if (!JWToken) return res.sendStatus(401);
   const xsrfToken = req.headers['x-xsrf-token'];
   if (req.method !== 'GET' && !xsrfToken) return res.sendStatus(401);
-  jwt.verify(JWToken, 'secret', async function(err, decoded) {
+  jwt.verify(JWToken, process.env.SECRET, async function(err, decoded) {
     if (err) return res.sendStatus(401);
     try {
       if (req.method !== 'GET' && decoded.xsrfToken !== xsrfToken)
@@ -227,7 +227,7 @@ router.get('/file/protected/:name', function(req, res, next) {
     root:
       __dirname +
       `/../protected/${
-        imgExtension.indexOf(fileType) >= 0 ? 'img/' : 'other/'
+      imgExtension.indexOf(fileType) >= 0 ? 'img/' : 'other/'
       }`,
     dotfiles: 'deny',
     headers: {
@@ -431,9 +431,9 @@ router.post('/profile/interest/:user_id', async function(req, res, next) {
     ]);
     const id = !inDB.rows[0]
       ? (await db.query(
-          'INSERT INTO interests (id, label) VALUES (DEFAULT, $1) RETURNING id',
-          [interest]
-        )).rows[0].id
+        'INSERT INTO interests (id, label) VALUES (DEFAULT, $1) RETURNING id',
+        [interest]
+      )).rows[0].id
       : inDB.rows[0].id;
     db.query(
       'SELECT * FROM interest_list WHERE user_id = ($1) AND interest_id = ($2)',
@@ -520,6 +520,24 @@ router.get('/users', async function(req, res, next) {
     });
     await Promise.all(promises);
     res.status(200).send(users.rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/profile/location/:user_id', async function(req, res, next) {
+  if (req.params.user_id != req.user.id) return res.sendStatus(401);
+  if (!req.body)
+    return res.status(400).json({ error: 'No body passed to make the call.' });
+  const lat = parseFloat(req.body.lat);
+  const long = parseFloat(req.body.long);
+  if (!lat || !long)
+    return res.status(400).send({
+      error: 'latitude and longitude were not passed in the body.'
+    });
+  try {
+    await db.query('UPDATE profiles SET lat = ($1), long = ($2) WHERE user_id = ($3)', [lat, long, req.user.id])
+    res.sendStatus(204);
   } catch (err) {
     next(err);
   }
