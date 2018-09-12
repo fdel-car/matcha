@@ -2,6 +2,13 @@ import withLayout from '../components/layout';
 import { withRouter } from 'next/router'
 import countryList from '../public/other/country-list';
 
+const sexualities = ['Heterosexual', 'Homosexual', "Bisexual"];
+
+function toAge(dateString) {
+  let birthday = new Date(dateString).getTime();
+  return ~~((Date.now() - birthday) / 31557600000);
+}
+
 class User extends React.Component {
   constructor(props) {
     super(props);
@@ -21,9 +28,25 @@ class User extends React.Component {
   }
 
   render() {
-    console.log(this.state)
     return (
       <div className="container">
+        <div className="field has-addons is-pulled-right">
+          <p className="control">
+            <a className="button">
+              <span className="icon is-small">
+                <i className="far fa-heart has-text-danger"></i>
+                {/* fas fa-heart */}
+              </span>
+            </a>
+          </p>
+          <p className="control">
+            <a className="button" disabled>
+              <span className="icon is-small">
+                <i className="far fa-comment"></i>
+              </span>
+            </a>
+          </p>
+        </div>
         <p className="title is-4">{this.state.profile.country ? (
           <>
             <img
@@ -33,7 +56,7 @@ class User extends React.Component {
               alt={countryList[this.state.profile.country]}
             />{' '}
           </>
-        ) : null}{this.state.user.first_name} {this.state.user.last_name}</p>
+        ) : null}{this.state.user.first_name} {this.state.user.last_name}<small>, {toAge(this.state.profile.birthday)}</small></p>
         <p className="subtitle is-6">@{this.state.user.username}</p>
         <div className="columns is-mobile is-multiline">
           {this.state.images.map((img, index) =>
@@ -43,7 +66,7 @@ class User extends React.Component {
             >
               <figure className="image is-square">
                 <img
-                  className="zoomable"
+                  style={{ cursor: 'pointer' }}
                   src={`/api/file/protected/${img.filename}`}
                   alt="Large img"
                 />
@@ -51,8 +74,20 @@ class User extends React.Component {
             </div>
           )}
         </div>
-        <p className="title is-5">About {this.state.profile.gender === 1 ? 'him' : 'her'}:</p>
-        <p>{this.state.profile.bio}</p>
+        <div className="content">
+          <p className="title is-4">
+            <span className="icon">
+              <i className="fas fa-info-circle" />
+            </span>{' '}
+            Everything {this.state.profile.gender === 1 ? 'he' : 'she'} told us
+            </p>
+          <p className="subtitle is-6">
+            Like {this.state.profile.gender === 1 ? 'him' : 'her'} to get a chance to know each other further 😉.
+            </p>
+          <p style={{ whiteSpace: 'pre-line' }}><b>Bio:</b> {this.state.profile.bio}</p>
+          <p><b>Birthday:</b> {new Date(this.state.profile.birthday).toDateString()}🎂</p>
+          <p><b>Sexuality</b>: {sexualities[this.state.profile.sexuality - 1]}</p>
+        </div>
       </div>
     );
   }

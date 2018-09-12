@@ -11,6 +11,25 @@ const fs = require('fs');
 const uploadDir = `${__dirname}/../protected/img/`;
 const imgExtension = ['gif', 'png', 'jpg', 'jpeg', 'ico'];
 
+const getTargetedGenders = (gender, sexuality) => {
+  if (!gender || !sexuality) return [1, 2]
+  if (sexuality == 1) {
+    return gender == 1 ? [2] : [1];
+  } else if (sexuality == 2) {
+    if (!parseInt(gender)) return [1, 2]
+    return [gender];
+  } else return [1, 2];
+};
+
+const getTargetedSexualities = (sexuality) => {
+  if (!sexuality) return [1, 2, 3]
+  if (sexuality == 1) {
+    return [1, 3];
+  } else if (sexuality == 2) {
+    return [2, 3]
+  } else return [1, 2, 3];
+};
+
 const generateJWT = (uid, xsrfToken) => jwt.sign({ uid, xsrfToken }, process.env.SECRET);
 function generateToken() {
   const nodemailer = require('nodemailer');
@@ -500,10 +519,8 @@ router.delete('/profile/interest/:user_id', async function(req, res, next) {
 
 router.get('/users', async function(req, res, next) {
   try {
-    const genders = (req.query.genders && req.query.genders.split(',')) || [
-      1,
-      2
-    ];
+    const gender = req.query.gender;
+    const sexuality = req.query.sexuality;
     const lat = parseFloat(req.query.lat);
     const long = parseFloat(req.query.long);
     if (!lat || !long)
@@ -515,8 +532,14 @@ router.get('/users', async function(req, res, next) {
       users.id, username, first_name, last_name, bio, birthday, country, filename FROM users\
         INNER JOIN profiles ON users.id = profiles.user_id\
         LEFT JOIN images ON users.id = images.user_id\
-          WHERE position = 1 AND verified = TRUE AND gender = ANY($1::int[]) AND users.id != ($4)',
-      [genders, lat, long, req.user.id]
+          WHERE\
+            position = 1 AND\
+            verified = TRUE AND\
+            gender = ANY($1::int[]) AND\
+            users.id != ($4)',
+      // Filter by gender and sexuality in the same time (eg: if bisexual male can't have homo female)
+      // Don't forget getTargetedSexualities...
+      [getTargetedGenders(gender, sexuality), lat, long, req.user.id]
     );
     const promises = users.rows.map(user => {
       return db

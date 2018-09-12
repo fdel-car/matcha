@@ -3,14 +3,6 @@ import ProfileCard from '../components/profile_card';
 import Loading from '../components/loading';
 import Link from 'next/link';
 
-const getTargetedGenders = (gender, sexuality) => {
-  if (sexuality === 1) {
-    return gender === 1 ? [2] : [1];
-  } else if (sexuality === 2) {
-    return [gender];
-  } else return [1, 2];
-};
-
 class Home extends React.Component {
   constructor(props) {
     super(props);
@@ -21,21 +13,18 @@ class Home extends React.Component {
 
   updateUserList(offset) {
     fetch(
-      `/api/users?genders=${getTargetedGenders(
-        this.state.profile.gender,
-        this.state.profile.sexuality
-      )}&lat=${this.state.profile.lat}&long=${this.state.profile.long}`,
+      `/api/users?lat=${this.state.profile.lat}&long=${this.state.profile.long}&gender=${this.state.profile.gender}&sexuality=${this.state.profile.sexuality}`,
       {
         method: 'GET',
         credentials: 'same-origin'
       }
     ).then(async res => {
-      if (res.status === 400) {
+      if (!this.isUnmounted && res.status === 400) {
         const json = await res.json();
         if (json.error === "latitude and longitude are both mandatory query parameter.")
           this.setState({ loading: false, unauthorized: true, locationMissing: true })
       }
-      if (res.status === 200) {
+      if (!this.isUnmounted && res.status === 200) {
         const users = await res.json();
         let minDist = Infinity;
         let maxDist = 0;
@@ -60,7 +49,8 @@ class Home extends React.Component {
           a.distance > b.distance ? scoreB++ : scoreA++;
           return scoreB - scoreA;
         });
-        this.setState({ users, loading: false });
+        if (!this.isUnmounted)
+          this.setState({ users, loading: false });
       }
     });
   }
@@ -111,13 +101,17 @@ class Home extends React.Component {
     const urls = [`/api/profile/${this.props.user.id}`, `/api/profile/interests/${this.props.user.id}`];
     const promises = urls.map(url => fetch(url, { method: 'GET', credentials: 'same-origin' }));
     const results = await Promise.all(promises);
-    if (results.every(res => res.status === 200)) {
+    if (!this.isUnmounted && results.every(res => res.status === 200)) {
       const profile = await results[0].json();
       const interests = await results[1].json();
       if (Object.keys(profile).length > 0)
         this.setState({ profile, interests }, () => this.updateUserList(0));
       else this.setState({ unauthorized: true })
     }
+  }
+
+  componentWillUnmount() {
+    this.isUnmounted = true;
   }
 
   render() {

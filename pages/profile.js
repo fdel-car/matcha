@@ -160,7 +160,7 @@ class Profile extends React.Component {
     const res = await fetch(`/api/images/${this.props.user.id}`, {
       method: 'GET'
     });
-    if (res.status === 200) {
+    if (!this.isUnmounted && res.status === 200) {
       const images = await res.json();
       this.setState(prevState => {
         return {
@@ -174,7 +174,7 @@ class Profile extends React.Component {
     fetch(`/api/profile/interests/${this.props.user.id}`, {
       method: 'GET'
     }).then(async res => {
-      if (res.status === 200) {
+      if (!this.isUnmounted && res.status === 200) {
         const interests = await res.json();
         this.setState({ interests });
       }
@@ -186,9 +186,9 @@ class Profile extends React.Component {
     fetch(`/api/profile/${this.props.user.id}`, {
       method: 'GET'
     }).then(async res => {
-      if (res.status === 200) {
+      if (!this.isUnmounted && res.status === 200) {
         const json = await res.json();
-        if (Object.keys(json).length > 0)
+        if (!this.isUnmounted && Object.keys(json).length > 0)
           this.setState({
             bio: { value: json.bio, errors: [] },
             gender: { value: json.gender, errors: [] },
@@ -199,6 +199,10 @@ class Profile extends React.Component {
       }
     });
     this.updateInterests();
+  }
+
+  componentWillUnmount() {
+    this.isUnmounted = true;
   }
 
   swapImagePosition(a, b) {
