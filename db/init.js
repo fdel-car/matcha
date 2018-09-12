@@ -45,6 +45,13 @@ lat float8 DEFAULT NULL,\
 long float8 DEFAULT NULL,\
 country char(2))'
     );
+    await db.query(
+      'CREATE TABLE IF NOT EXISTS likes (\
+id serial PRIMARY KEY,\
+src_uid integer NOT NULL references users(id),\
+dest_uid integer NOT NULL references users(id),\
+liked_at timestamptz DEFAULT CURRENT_TIMESTAMP)'
+    );
     const promises = hobbies.map(hobby => {
       hobby = hobby.toLowerCase().replace(/^[0-9]*\w/, c => c.toUpperCase());
       return db

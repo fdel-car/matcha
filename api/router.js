@@ -21,15 +21,6 @@ const getTargetedGenders = (gender, sexuality) => {
   } else return [1, 2];
 };
 
-const getTargetedSexualities = (sexuality) => {
-  if (!sexuality) return [1, 2, 3]
-  if (sexuality == 1) {
-    return [1, 3];
-  } else if (sexuality == 2) {
-    return [2, 3]
-  } else return [1, 2, 3];
-};
-
 const generateJWT = (uid, xsrfToken) => jwt.sign({ uid, xsrfToken }, process.env.SECRET);
 function generateToken() {
   const nodemailer = require('nodemailer');
@@ -241,7 +232,7 @@ router.get('/user', function(req, res, next) {
 router.get('/user/:id', async function(req, res, next) {
   try {
     const user = await db.query(
-      'SELECT username, first_name, last_name FROM users WHERE id = ($1)',
+      'SELECT id, username, first_name, last_name FROM users WHERE id = ($1)',
       [req.params.id]
     );
     res.status(200).json(user.rows[0] || {});
@@ -536,10 +527,10 @@ router.get('/users', async function(req, res, next) {
             position = 1 AND\
             verified = TRUE AND\
             gender = ANY($1::int[]) AND\
-            users.id != ($4)',
-      // Filter by gender and sexuality in the same time (eg: if bisexual male can't have homo female)
-      // Don't forget getTargetedSexualities...
-      [getTargetedGenders(gender, sexuality), lat, long, req.user.id]
+            users.id != ($4) AND\
+              CASE WHEN gender=($5) THEN sexuality IN(2, 3)\
+              ELSE sexuality IN(1, 3) END',
+      [getTargetedGenders(gender, sexuality), lat, long, req.user.id, gender]
     );
     const promises = users.rows.map(user => {
       return db
@@ -575,6 +566,31 @@ router.post('/profile/location/:user_id', async function(req, res, next) {
     res.sendStatus(204);
   } catch (err) {
     next(err);
+  }
+});
+
+router.get('/like/:user_id', async function(req, res, next) {
+  try {
+    const inDB = await db.query('SELECT id FROM likes WHERE src_uid = ($1) AND dest_uid = ($2)', [req.user.id, req.params.user_id])
+    res.status(200).send({ liked: !!inDB.rows[0] })
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/like/:user_id', async function(req, res, next) {
+  if (!req.params.user_id || !parseInt(req.params.user_id)) return res.sendStatus(400);
+  try {
+    const inDB = await db.query('SELECT id FROM likes WHERE src_uid = ($1) AND dest_uid = ($2)', [req.user.id, req.params.user_id])
+    if (inDB.rows[0]) {
+      await db.query('DELETE FROM likes WHERE src_uid = ($1) AND dest_uid = ($2)', [req.user.id, req.params.user_id])
+      res.sendStatus(204);
+    } else {
+      db.query('INSERT INTO likes (src_uid, dest_uid) VALUES ($1, $2)', [req.user.id, req.params.user_id]);
+      res.sendStatus(201);
+    }
+  } catch (err) {
+    next(err)
   }
 });
 
