@@ -54,23 +54,25 @@ function withLayout(Child, protectedPage = false) {
 
     handleRouteChange(url) {
       console.debug(`Starting to load ${url}...`);
-      this.setState({
-        loadingPage:
-          !this.props.authVerified && !this.state.authVerified ? true : false
-      });
+      if (!this.isUnmounted)
+        this.setState({
+          loadingPage:
+            !this.props.authVerified && !this.state.authVerified ? true : false
+        });
     }
 
     async componentDidMount() {
       Router.onRouteChangeStart = url => this.handleRouteChange(url);
-      Router.onRouteChangeComplete = () =>
-        this.setState({ loadingPage: false });
+      Router.onRouteChangeComplete = () => {
+        if (!this.isUnmounted) this.setState({ loadingPage: false });
+      };
       Router.onRouteChangeError = err => {
         if (err) console.log(err.message);
-        this.setState({ loadingPage: false });
+        if (!this.isUnmounted) this.setState({ loadingPage: false });
       };
       if (!this.props.authVerified) {
         const user = await validateUser(protectedPage, Router.pathname);
-        this.setState({ user, authVerified: true });
+        if (!this.isUnmounted) this.setState({ user, authVerified: true });
       }
       window.addEventListener(
         'storage',
@@ -82,6 +84,10 @@ function withLayout(Child, protectedPage = false) {
         },
         false
       );
+    }
+
+    componentWillUnmount() {
+      this.isUnmounted = true;
     }
 
     render() {
@@ -98,25 +104,30 @@ function withLayout(Child, protectedPage = false) {
             <title>Matcha</title>
             <link rel="icon" type="image/png" href="/file/favicon.png" />
             <link href="/file/flags.min.css" rel="stylesheet" type="text/css" />
-            <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossOrigin="anonymous" />
+            <link
+              rel="stylesheet"
+              href="https://use.fontawesome.com/releases/v5.3.1/css/all.css"
+              integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU"
+              crossOrigin="anonymous"
+            />
             <link rel="stylesheet" href="/_next/static/style.css" />
           </Head>
           {(!!user || (authVerified && !protectedPage)) &&
-            !this.state.loadingPage ? (
-              <>
-                {protectedPage ? <NavigationBar /> : null}
-                <section
-                  className={
-                    'section' +
-                    (!protectedPage ? ' anon-layout' : ' has-navbar-fixed-top')
-                  }
-                >
-                  <Child {...this.props} {...this.state} />
-                </section>
-              </>
-            ) : (
-              <Loading />
-            )}
+          !this.state.loadingPage ? (
+            <>
+              {protectedPage ? <NavigationBar /> : null}
+              <section
+                className={
+                  'section' +
+                  (!protectedPage ? ' anon-layout' : ' has-navbar-fixed-top')
+                }
+              >
+                <Child {...this.props} {...this.state} />
+              </section>
+            </>
+          ) : (
+            <Loading />
+          )}
         </>
       );
     }

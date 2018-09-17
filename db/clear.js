@@ -8,6 +8,7 @@ const fs = require('fs');
   await db.query('DROP TABLE IF EXISTS profiles CASCADE');
   await db.query('DROP TABLE IF EXISTS users CASCADE');
   await db.query('DROP TABLE IF EXISTS likes CASCADE');
+  await db.query('DROP TABLE IF EXISTS visits CASCADE');
   const uploadDir = `${__dirname}/../protected/img/`;
   const files = fs.readdirSync(uploadDir);
   files.forEach(filename => {

@@ -11,7 +11,8 @@ const {
   // validatePassword,
   // confirmPassword,
   validateDate,
-  validateBio
+  validateBio,
+  validateInterest
 } = require('../components/helpers/validation');
 
 const rules = {
@@ -43,11 +44,17 @@ class InterestsInput extends React.PureComponent {
     const value = event.target.value
       .toLowerCase()
       .replace(/^[0-9]*\w/, c => c.toUpperCase());
-    this.setState({ [event.target.name]: { value, errors: [] } });
+    this.setState({
+      [event.target.name]: { value, errors: validateInterest(value) }
+    });
   }
 
   handleKeyPress(event) {
-    if (event.key === 'Enter' && this.state.interest.value) {
+    if (
+      event.key === 'Enter' &&
+      this.state.interest.value &&
+      this.state.interest.errors.length === 0
+    ) {
       if (
         this.props.interests
           .map(interest => interest.label)

@@ -12,16 +12,17 @@ const uploadDir = `${__dirname}/../protected/img/`;
 const imgExtension = ['gif', 'png', 'jpg', 'jpeg', 'ico'];
 
 const getTargetedGenders = (gender, sexuality) => {
-  if (!gender || !sexuality) return [1, 2]
+  if (!gender || !sexuality) return [1, 2];
   if (sexuality == 1) {
     return gender == 1 ? [2] : [1];
   } else if (sexuality == 2) {
-    if (!parseInt(gender)) return [1, 2]
+    if (!parseInt(gender)) return [1, 2];
     return [gender];
   } else return [1, 2];
 };
 
-const generateJWT = (uid, xsrfToken) => jwt.sign({ uid, xsrfToken }, process.env.SECRET);
+const generateJWT = (uid, xsrfToken) =>
+  jwt.sign({ uid, xsrfToken }, process.env.SECRET);
 function generateToken() {
   const nodemailer = require('nodemailer');
   const transporter = nodemailer.createTransport({
@@ -231,10 +232,26 @@ router.get('/user', function(req, res, next) {
 
 router.get('/user/:id', async function(req, res, next) {
   try {
+    if (!parseInt(req.params.id)) res.sendStatus(400);
     const user = await db.query(
       'SELECT id, username, first_name, last_name FROM users WHERE id = ($1)',
       [req.params.id]
     );
+    if (req.user.id != req.params.id)
+      db.query(
+        'SELECT id FROM visits WHERE src_uid = ($1) AND dest_uid = ($2)',
+        [req.user.id, req.params.id]
+      )
+        .then(async result => {
+          if (result.rows[0])
+            await db.query('UPDATE visits SET visited_at = CURRENT_TIMESTAMP');
+          else
+            await db.query(
+              'INSERT INTO visits (src_uid, dest_uid, visited_at) VALUES($1, $2, CURRENT_TIMESTAMP)',
+              [req.user.id, req.params.id]
+            );
+        })
+        .catch(err => next(err));
     res.status(200).json(user.rows[0] || {});
   } catch (err) {
     next(err);
@@ -249,7 +266,7 @@ router.get('/file/protected/:name', function(req, res, next) {
     root:
       __dirname +
       `/../protected/${
-      imgExtension.indexOf(fileType) >= 0 ? 'img/' : 'other/'
+        imgExtension.indexOf(fileType) >= 0 ? 'img/' : 'other/'
       }`,
     dotfiles: 'deny',
     headers: {
@@ -445,7 +462,9 @@ router.post('/profile/interest/:user_id', async function(req, res, next) {
   if (!req.body)
     return res.status(400).json({ error: 'No body passed to make the call.' });
   let { interest } = req.body;
-  if (!interest) return res.sendStatus(400);
+  const errors = validateInput({ interest });
+  if (errors.length > 0)
+    return res.status(400).json({ error: errors.join(' ') });
   interest = interest.toLowerCase().replace(/^[0-9]*\w/, c => c.toUpperCase());
   try {
     const inDB = await db.query('SELECT * FROM interests WHERE label = ($1)', [
@@ -453,9 +472,9 @@ router.post('/profile/interest/:user_id', async function(req, res, next) {
     ]);
     const id = !inDB.rows[0]
       ? (await db.query(
-        'INSERT INTO interests (id, label) VALUES (DEFAULT, $1) RETURNING id',
-        [interest]
-      )).rows[0].id
+          'INSERT INTO interests (id, label) VALUES (DEFAULT, $1) RETURNING id',
+          [interest]
+        )).rows[0].id
       : inDB.rows[0].id;
     db.query(
       'SELECT * FROM interest_list WHERE user_id = ($1) AND interest_id = ($2)',
@@ -532,19 +551,69 @@ router.get('/users', async function(req, res, next) {
               ELSE sexuality IN(1, 3) END',
       [getTargetedGenders(gender, sexuality), lat, long, req.user.id, gender]
     );
-    const promises = users.rows.map(user => {
-      return db
-        .query(
-          'SELECT * FROM interests WHERE id IN (SELECT interest_id FROM interest_list WHERE user_id = ($1))',
-          [user.id],
-          false,
-          false
-        )
-        .then(res => {
-          user.interests = res.rows;
-        });
+    const promises = [];
+    promises.push(
+      users.rows.map(user => {
+        return db
+          .query(
+            'SELECT * FROM interests WHERE id IN (SELECT interest_id FROM interest_list WHERE user_id = ($1))',
+            [user.id],
+            false,
+            false
+          )
+          .then(result => {
+            user.interests = result.rows;
+          });
+      })
+    );
+    promises.push(
+      users.rows.map(user => {
+        return db
+          .query(
+            'SELECT id FROM likes WHERE src_uid = ($1) AND dest_uid = ($2)',
+            [req.user.id, user.id],
+            false,
+            false
+          )
+          .then(result => {
+            user.liked = !!result.rows[0];
+          });
+      })
+    );
+    promises.push(
+      users.rows.map(user => {
+        return db
+          .query(
+            'SELECT id FROM likes WHERE dest_uid = ($1)',
+            [user.id],
+            false,
+            false
+          )
+          .then(result => {
+            user.likes = result.rowCount;
+          });
+      })
+    );
+    promises.push(
+      users.rows.map(user => {
+        return db
+          .query(
+            'SELECT id FROM visits WHERE dest_uid = ($1)',
+            [user.id],
+            false,
+            false
+          )
+          .then(result => {
+            user.visits = result.rowCount;
+          });
+      })
+    );
+    await Promise.all(promises.map(array => Promise.all(array)));
+    users.rows.forEach(user => {
+      user.popularity = user.visits + user.likes * 3;
+      delete user.likes;
+      delete user.visits;
     });
-    await Promise.all(promises);
     res.status(200).send(users.rows);
   } catch (err) {
     next(err);
@@ -562,7 +631,10 @@ router.post('/profile/location/:user_id', async function(req, res, next) {
       error: 'latitude and longitude were not passed in the body.'
     });
   try {
-    await db.query('UPDATE profiles SET lat = ($1), long = ($2) WHERE user_id = ($3)', [lat, long, req.user.id])
+    await db.query(
+      'UPDATE profiles SET lat = ($1), long = ($2) WHERE user_id = ($3)',
+      [lat, long, req.user.id]
+    );
     res.sendStatus(204);
   } catch (err) {
     next(err);
@@ -571,26 +643,64 @@ router.post('/profile/location/:user_id', async function(req, res, next) {
 
 router.get('/like/:user_id', async function(req, res, next) {
   try {
-    const inDB = await db.query('SELECT id FROM likes WHERE src_uid = ($1) AND dest_uid = ($2)', [req.user.id, req.params.user_id])
-    res.status(200).send({ liked: !!inDB.rows[0] })
+    const inDB = await db.query(
+      'SELECT id FROM likes WHERE src_uid = ($1) AND dest_uid = ($2)',
+      [req.user.id, req.params.user_id]
+    );
+    res.status(200).send({ liked: !!inDB.rows[0] });
   } catch (err) {
     next(err);
   }
 });
 
 router.post('/like/:user_id', async function(req, res, next) {
-  if (!req.params.user_id || !parseInt(req.params.user_id)) return res.sendStatus(400);
+  if (
+    !req.params.user_id ||
+    !parseInt(req.params.user_id) ||
+    req.params.user_id == req.user.id
+  )
+    return res.sendStatus(400);
+  // Block user who does not have a profile picture
+  const result = await db.query(
+    'SELECT (id) FROM images WHERE user_id = ($1) AND position = 1',
+    [req.user.id]
+  );
+  if (!result.rows[0]) return res.sendStatus(400);
   try {
-    const inDB = await db.query('SELECT id FROM likes WHERE src_uid = ($1) AND dest_uid = ($2)', [req.user.id, req.params.user_id])
+    const inDB = await db.query(
+      'SELECT id FROM likes WHERE src_uid = ($1) AND dest_uid = ($2)',
+      [req.user.id, req.params.user_id]
+    );
     if (inDB.rows[0]) {
-      await db.query('DELETE FROM likes WHERE src_uid = ($1) AND dest_uid = ($2)', [req.user.id, req.params.user_id])
+      await db.query(
+        'DELETE FROM likes WHERE src_uid = ($1) AND dest_uid = ($2)',
+        [req.user.id, req.params.user_id]
+      );
       res.sendStatus(204);
     } else {
-      db.query('INSERT INTO likes (src_uid, dest_uid) VALUES ($1, $2)', [req.user.id, req.params.user_id]);
+      db.query('INSERT INTO likes (src_uid, dest_uid) VALUES ($1, $2)', [
+        req.user.id,
+        req.params.user_id
+      ]);
       res.sendStatus(201);
     }
   } catch (err) {
-    next(err)
+    next(err);
+  }
+});
+
+router.get('/popularity/:user_id', async function(req, res, next) {
+  try {
+    const likes = await db.query('SELECT id FROM likes WHERE dest_uid = ($1)', [
+      req.params.user_id
+    ]);
+    const visits = await db.query(
+      'SELECT id FROM visits WHERE dest_uid = ($1)',
+      [req.params.user_id]
+    );
+    res.status(200).send({ popularity: likes.rowCount * 3 + visits.rowCount });
+  } catch (err) {
+    next(err);
   }
 });
 

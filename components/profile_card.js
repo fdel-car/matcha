@@ -10,7 +10,7 @@ const ProfileCard = props => (
   <div className="card">
     <Link as={`/user/${props.user.id}`} href={`/user?id=${props.user.id}`}>
       <a className="card-image">
-        <figure className="image is-square">
+        <figure className="image is-square" style={{ position: 'relative' }}>
           <img
             src={
               props.img && props.img.filename
@@ -19,6 +19,21 @@ const ProfileCard = props => (
             }
             alt="Large img"
           />
+          <button
+            type="button"
+            className="button is-rounded like-button"
+            onClick={event =>
+              props.likeProfile
+                ? props.likeProfile(event, props.user.id)
+                : event.preventDefault()
+            }
+          >
+            <i
+              className={`has-text-danger fa${
+                props.user.liked ? 's' : 'r'
+              } fa-heart`}
+            />
+          </button>
         </figure>
       </a>
     </Link>

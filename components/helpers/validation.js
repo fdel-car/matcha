@@ -68,6 +68,18 @@ const validateBio = bio => {
   return errors;
 };
 
+const validateInterest = interest => {
+  let errors = [];
+  const regex = /^[a-zA-Z0-9\- ]+$/;
+  if (!regex.test(interest))
+    errors.push(
+      "Your interest must only contain alphanumeric characters or '-' and whitespaces."
+    );
+  if (interest.length > 128)
+    errors.push("Your interest can't be more than 128 characters long.");
+  return errors;
+};
+
 module.exports = {
   validateName,
   validateUsername,
@@ -75,5 +87,6 @@ module.exports = {
   validatePassword,
   confirmPassword,
   validateDate,
-  validateBio
+  validateBio,
+  validateInterest
 };

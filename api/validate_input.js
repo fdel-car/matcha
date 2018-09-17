@@ -4,7 +4,8 @@ const {
   validateEmail,
   validatePassword,
   validateDate,
-  validateBio
+  validateBio,
+  validateInterest
 } = require('../components/helpers/validation');
 
 const rules = {
@@ -14,7 +15,8 @@ const rules = {
   email: validateEmail,
   password: validatePassword,
   birthday: validateDate,
-  bio: validateBio
+  bio: validateBio,
+  interest: validateInterest
 };
 
 function validateInput(body) {
