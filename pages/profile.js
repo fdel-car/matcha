@@ -3,13 +3,12 @@ import ProfileCard from '../components/profile_card';
 import EditableImage from '../components/editable_image';
 import Field from '../components/field';
 import Select from '../components/select';
+import PasswordChangeModal from '../components/password_change';
 import countryList from '../public/other/country-list';
 import { formState, formReady } from '../components/helpers/form_handler';
 const {
   validateName,
   validateEmail,
-  // validatePassword,
-  // confirmPassword,
   validateDate,
   validateBio,
   validateInterest
@@ -69,7 +68,7 @@ class InterestsInput extends React.PureComponent {
           };
         });
       }
-      fetch(`/api/profile/interest/${this.props.user.id}`, {
+      fetch(`/api/profile/interest`, {
         method: 'POST',
         credentials: 'same-origin',
         headers: {
@@ -87,7 +86,7 @@ class InterestsInput extends React.PureComponent {
   }
 
   deleteInterest(id) {
-    fetch(`/api/profile/interest/${this.props.user.id}`, {
+    fetch(`/api/profile/interest`, {
       method: 'DELETE',
       credentials: 'same-origin',
       headers: {
@@ -154,7 +153,11 @@ class Profile extends React.Component {
     rules.first_name.default = props.user.first_name;
     rules.last_name.default = props.user.last_name;
     rules.email.default = props.user.email;
-    this.state = { images, ...formState(rules), interests: [] };
+    this.state = {
+      images,
+      ...formState(rules),
+      interests: []
+    };
     this.swapImagePosition = this.swapImagePosition.bind(this);
     this.updateAllFilename = this.updateAllFilename.bind(this);
     this.updateInterests = this.updateInterests.bind(this);
@@ -213,7 +216,7 @@ class Profile extends React.Component {
   }
 
   swapImagePosition(a, b) {
-    fetch(`/api/images/${this.props.user.id}/swap`, {
+    fetch(`/api/images/swap`, {
       method: 'POST',
       credentials: 'same-origin',
       headers: {
@@ -240,24 +243,9 @@ class Profile extends React.Component {
   handleChange(event) {
     const target = event.target;
     let errors = [];
-    // Need to review this else if mess
     if (rules[target.name].validation) {
       const validate = rules[target.name].validation;
-      if (target.name === 'confirm_password')
-        errors = validate(this.state.password.value)(target.value);
-      else if (target.name === 'password') {
-        errors = validate(this.state.list)(target.value);
-        this.setState(prevState => {
-          return {
-            confirm_password: {
-              ...prevState.confirm_password,
-              errors: rules['confirm_password'].validation(target.value)(
-                prevState.confirm_password.value
-              )
-            }
-          };
-        });
-      } else errors = validate(target.value);
+      errors = validate(target.value);
     }
     this.setState({ [target.name]: { value: target.value, errors } });
   }
@@ -271,7 +259,7 @@ class Profile extends React.Component {
     event.preventDefault();
     if (formReady(rules, this.state) || this.state.noSubmit) return;
     this.setState({ noSubmit: true });
-    fetch(`/api/profile/${this.props.user.id}`, {
+    fetch(`/api/profile`, {
       method: 'POST',
       credentials: 'same-origin',
       headers: {
@@ -490,19 +478,18 @@ class Profile extends React.Component {
                   errors={this.state.bio.errors}
                 />
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <input
-                  className="button is-info"
-                  type="submit"
-                  value="Update"
-                  disabled={
-                    formReady(rules, this.state) || this.state.noSubmit
-                      ? true
-                      : null
-                  }
-                />
-              </div>
+              <input
+                className="button is-info"
+                type="submit"
+                value="Update"
+                disabled={
+                  formReady(rules, this.state) || this.state.noSubmit
+                    ? true
+                    : null
+                }
+              />
             </form>
+            <PasswordChangeModal user={this.props.user} />
           </div>
         </div>
       </div>

@@ -79,7 +79,7 @@ class Home extends React.Component {
   locateUser() {
     this.setState({ loading: true });
     const storeLocation = (lat, long) => {
-      fetch(`/api/profile/location/${this.props.user.id}`, {
+      fetch(`/api/profile/location`, {
         method: 'POST',
         credentials: 'same-origin',
         headers: {

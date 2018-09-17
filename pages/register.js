@@ -22,11 +22,6 @@ const rules = {
 };
 
 class Register extends React.Component {
-  static async getInitialProps({ req }) {
-    const baseUrl = req ? `${req.protocol}://${req.get('Host')}` : ''; // See 'Host header attack'
-    return { baseUrl };
-  }
-
   constructor(props) {
     super(props);
     this.state = formState(rules);
@@ -36,7 +31,7 @@ class Register extends React.Component {
 
   componentDidMount() {
     console.log('Password list is loading...');
-    fetch(this.props.baseUrl + '/file/breached.txt').then(async response => {
+    fetch('/file/breached.txt').then(async response => {
       if (this.isUnmounted) return console.log('Fetch of the list aborted.');
       const list = await response.text();
       if (this.isUnmounted) return console.log('Fetch of the list aborted.');
@@ -207,17 +202,17 @@ class Register extends React.Component {
                 />
               </div>
             ) : (
-                <input
-                  className="button is-info"
-                  type="submit"
-                  value="Sign up!"
-                  disabled={
-                    formReady(rules, this.state) || this.state.noSubmit
-                      ? true
-                      : null
-                  }
-                />
-              )}
+              <input
+                className="button is-info"
+                type="submit"
+                value="Sign up!"
+                disabled={
+                  formReady(rules, this.state) || this.state.noSubmit
+                    ? true
+                    : null
+                }
+              />
+            )}
           </form>
           <hr style={{ margin: '0.75rem 0' }} />
           <div style={{ textAlign: 'right' }}>

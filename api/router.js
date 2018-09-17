@@ -293,8 +293,7 @@ router.get('/images/:user_id', async function(req, res, next) {
   }
 });
 
-router.post('/images/:user_id', async function(req, res, next) {
-  if (req.params.user_id != req.user.id) return res.sendStatus(401);
+router.post('/images', async function(req, res, next) {
   const form = new formidable.IncomingForm();
   form.maxFileSize = 10 * 1024 * 1024;
   form.parse(req, function(err, fields, files) {
@@ -351,8 +350,7 @@ router.post('/images/:user_id', async function(req, res, next) {
   });
 });
 
-router.post('/images/:user_id/swap', async function(req, res, next) {
-  if (req.params.user_id != req.user.id) return res.sendStatus(401);
+router.post('/images/swap', async function(req, res, next) {
   if (!req.body)
     return res.status(400).json({ error: 'No body passed to make the call.' });
   if (
@@ -386,8 +384,7 @@ router.get('/profile/:user_id', async function(req, res, next) {
   }
 });
 
-router.post('/profile/:user_id', async function(req, res, next) {
-  if (req.params.user_id != req.user.id) return res.sendStatus(401);
+router.post('/profile', async function(req, res, next) {
   if (!req.body)
     return res.status(400).json({ error: 'No body passed to make the call.' });
   const { email, first_name, last_name, birthday, bio } = req.body;
@@ -457,8 +454,7 @@ router.get('/profile/interests/:user_id', async function(req, res, next) {
   }
 });
 
-router.post('/profile/interest/:user_id', async function(req, res, next) {
-  if (req.params.user_id != req.user.id) return res.sendStatus(401);
+router.post('/profile/interest', async function(req, res, next) {
   if (!req.body)
     return res.status(400).json({ error: 'No body passed to make the call.' });
   let { interest } = req.body;
@@ -497,8 +493,7 @@ router.post('/profile/interest/:user_id', async function(req, res, next) {
   }
 });
 
-router.delete('/profile/interest/:user_id', async function(req, res, next) {
-  if (req.params.user_id != req.user.id) return res.sendStatus(401);
+router.delete('/profile/interest', async function(req, res, next) {
   if (!req.body)
     return res.status(400).json({ error: 'No body passed to make the call.' });
   if (!req.body.id)
@@ -620,8 +615,7 @@ router.get('/users', async function(req, res, next) {
   }
 });
 
-router.post('/profile/location/:user_id', async function(req, res, next) {
-  if (req.params.user_id != req.user.id) return res.sendStatus(401);
+router.post('/profile/location', async function(req, res, next) {
   if (!req.body)
     return res.status(400).json({ error: 'No body passed to make the call.' });
   const lat = parseFloat(req.body.lat);
@@ -699,6 +693,30 @@ router.get('/popularity/:user_id', async function(req, res, next) {
       [req.params.user_id]
     );
     res.status(200).send({ popularity: likes.rowCount * 3 + visits.rowCount });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put('/user/password', async function(req, res, next) {
+  const { old_password, new_password } = req.body;
+  const errors = validateInput({
+    password: old_password,
+    password: new_password
+  });
+  if (errors.length > 0)
+    return res.status(400).json({ error: errors.join(' ') });
+
+  try {
+    const user = await db.query('SELECT password FROM users WHERE id = ($1)', [
+      req.user.id
+    ]);
+    const hash = user.rows[0].password;
+    const isValid = await bcrypt.compare(old_password, hash);
+    if (isValid) {
+      console.log('All good'); // Need to encrypt the new password and store it in the db to replace the old one
+      res.sendStatus(204);
+    } else res.status(401).send({ error: 'The password provided is invalid.' });
   } catch (err) {
     next(err);
   }

@@ -59,7 +59,7 @@ class EditableImage extends React.Component {
     const formData = new FormData();
     formData.set('position', this.props.position);
     formData.set('image', this.state.file);
-    axios(`/api/images/${this.props.userId}`, {
+    axios(`/api/images`, {
       method: 'POST',
       headers: {
         'x-xsrf-token': window.localStorage.getItem('xsrfToken')
@@ -101,10 +101,10 @@ class EditableImage extends React.Component {
               (this.props.img.filename
                 ? `/api/file/protected/${this.props.img.filename}`
                 : `/file/${
-                this.props.position === 1
-                  ? 'default.jpg'
-                  : `${this.props.position}.png`
-                }`)
+                    this.props.position === 1
+                      ? 'default.jpg'
+                      : `${this.props.position}.png`
+                  }`)
             }
           />
           <input
@@ -140,16 +140,16 @@ class EditableImage extends React.Component {
               </p>
             </div>
           ) : this.props.swap &&
-            !this.state.progress &&
-            this.props.img.filename ? (
-                <button
-                  type="button"
-                  className="button is-rounded star-button"
-                  onClick={() => this.props.swap(this.props.position - 1, 0)}
-                >
-                  <i className="has-text-warning fas fa-star" />
-                </button>
-              ) : null}
+          !this.state.progress &&
+          this.props.img.filename ? (
+            <button
+              type="button"
+              className="button is-rounded star-button"
+              onClick={() => this.props.swap(this.props.position - 1, 0)}
+            >
+              <i className="has-text-warning fas fa-star" />
+            </button>
+          ) : null}
         </figure>
         {this.state.error ? (
           <div
