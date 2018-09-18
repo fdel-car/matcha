@@ -167,3 +167,16 @@ section.has-navbar-fixed-top {
     width: 100%;
   }
 }
+
+.user-hotbar {
+  float: right;
+}
+
+@media screen and (min-width: 569px) {
+  .user-hotbar {
+    float: none;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+  }
+}

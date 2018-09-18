@@ -13,6 +13,8 @@ last_name varchar(32),\
 email varchar(64) UNIQUE,\
 password varchar,\
 verified boolean DEFAULT FALSE,\
+online boolean DEFAULT FALSE,\
+last_online_at timestamptz DEFAULT CURRENT_TIMESTAMP,\
 verify_token uuid DEFAULT NULL)'
     );
     await db.query(

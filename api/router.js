@@ -75,6 +75,9 @@ router.post('/login', async (req, res, next) => {
         httpOnly: true
         // maxAge: 3600000
       });
+      db.query('UPDATE users SET online = TRUE WHERE id = ($1)', [
+        user.rows[0].id
+      ]).catch(err => next(err));
       res.status(200).json({ xsrfToken });
     } else {
       return res.status(401).json({ error: 'Invalid password provided.' });
@@ -82,11 +85,6 @@ router.post('/login', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-});
-
-router.get('/logout', (req, res) => {
-  res.clearCookie('jwt', { path: '/', httpOnly: true });
-  res.sendStatus(200);
 });
 
 router.post('/verify', async (req, res, next) => {
@@ -219,11 +217,25 @@ router.use(function(req, res, next) {
       );
       if (!user.rows[0]) return res.sendStatus(400); // Very unlikely
       req.user = user.rows[0];
+      if (!/^\/file\/protected\//.test(req.url)) {
+        db.query(
+          'UPDATE users SET last_online_at = CURRENT_TIMESTAMP WHERE id = ($1)',
+          [req.user.id]
+        ).catch(err => next(err));
+      }
       next();
     } catch (err) {
       next(err);
     }
   });
+});
+
+router.get('/logout', (req, res) => {
+  res.clearCookie('jwt', { path: '/', httpOnly: true });
+  db.query('UPDATE users SET online = FALSE WHERE id = ($1)', [
+    req.user.id
+  ]).catch(err => next(err));
+  res.sendStatus(200);
 });
 
 router.get('/user', function(req, res, next) {
@@ -234,7 +246,7 @@ router.get('/user/:id', async function(req, res, next) {
   try {
     if (!parseInt(req.params.id)) res.sendStatus(400);
     const user = await db.query(
-      'SELECT id, username, first_name, last_name FROM users WHERE id = ($1)',
+      'SELECT id, username, first_name, last_name, online, last_online_at FROM users WHERE id = ($1)',
       [req.params.id]
     );
     if (req.user.id != req.params.id)
@@ -714,8 +726,18 @@ router.put('/user/password', async function(req, res, next) {
     const hash = user.rows[0].password;
     const isValid = await bcrypt.compare(old_password, hash);
     if (isValid) {
-      console.log('All good'); // Need to encrypt the new password and store it in the db to replace the old one
-      res.sendStatus(204);
+      bcrypt.hash(new_password, 12, async function(err, hash) {
+        if (err) return next(err);
+        try {
+          await db.query('UPDATE users SET password = ($1) WHERE id = ($2)', [
+            hash,
+            req.user.id
+          ]);
+          res.sendStatus(204);
+        } catch (err) {
+          next(err);
+        }
+      });
     } else res.status(401).send({ error: 'The password provided is invalid.' });
   } catch (err) {
     next(err);

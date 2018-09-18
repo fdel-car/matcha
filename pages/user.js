@@ -4,6 +4,21 @@ import countryList from '../public/other/country-list';
 
 const sexualities = ['Heterosexual', 'Homosexual', 'Bisexual'];
 
+function timeSince(date) {
+  const seconds = Math.floor((new Date() - date) / 1000);
+  let interval = Math.floor(seconds / 31536000);
+  if (interval >= 1) return interval + ` year${interval > 1 ? 's' : ''}`;
+  interval = Math.floor(seconds / 2592000);
+  if (interval >= 1) return interval + ` month${interval > 1 ? 's' : ''}`;
+  interval = Math.floor(seconds / 86400);
+  if (interval >= 1) return interval + ` day${interval > 1 ? 's' : ''}`;
+  interval = Math.floor(seconds / 3600);
+  if (interval >= 1) return interval + ` hour${interval > 1 ? 's' : ''}`;
+  interval = Math.floor(seconds / 60);
+  if (interval >= 1) return interval + ` minute${interval > 1 ? 's' : ''}`;
+  return Math.floor(seconds) + ` second${seconds > 1 ? 's' : ''}`;
+}
+
 function toAge(dateString) {
   let birthday = new Date(dateString).getTime();
   return ~~((Date.now() - birthday) / 31557600000);
@@ -83,26 +98,6 @@ class User extends React.Component {
   render() {
     return (
       <div className="container">
-        <div className="field has-addons is-pulled-right">
-          <p className="control">
-            <a className="button" onClick={this.likeProfile}>
-              <span className="icon is-small">
-                <i
-                  className={`fa${
-                    this.state.liked ? 's' : 'r'
-                  } fa-heart has-text-danger`}
-                />
-              </span>
-            </a>
-          </p>
-          <p className="control">
-            <a className="button" disabled>
-              <span className="icon is-small">
-                <i className="far fa-comment" />
-              </span>
-            </a>
-          </p>
-        </div>
         <p className="title is-4">
           {this.state.profile.country ? (
             <>
@@ -119,7 +114,13 @@ class User extends React.Component {
           {this.state.user.first_name} {this.state.user.last_name}
           <small> - {toAge(this.state.profile.birthday)}</small>
         </p>
-        <p className="subtitle is-6">@{this.state.user.username}</p>
+        <p className="subtitle is-6">
+          <span style={{ padding: '1rem' }} className="tag icon">
+            <i style={{ marginRight: '0.25rem' }} className="fas fa-trophy" />
+            {this.state.popularity}
+          </span>{' '}
+          @{this.state.user.username}
+        </p>
         <div className="columns is-mobile is-multiline">
           {this.state.images.map((img, index) => (
             <div
@@ -128,22 +129,14 @@ class User extends React.Component {
             >
               <figure className="image is-square">
                 <img
-                  style={{ cursor: 'pointer' }}
                   src={`/api/file/protected/${img.filename}`}
-                  alt="Large img"
+                  alt={`${this.state.user.username} img`}
                 />
               </figure>
             </div>
           ))}
         </div>
         <div className="content">
-          <span
-            style={{ padding: '1rem' }}
-            className="tag icon is-pulled-right"
-          >
-            <i style={{ marginRight: '0.25rem' }} className="fas fa-trophy" />
-            {this.state.popularity}
-          </span>
           <p className="title is-4">
             <span className="icon">
               <i className="fas fa-info-circle" />
@@ -163,6 +156,49 @@ class User extends React.Component {
           </p>
           <p>
             <b>Sexuality</b>: {sexualities[this.state.profile.sexuality - 1]}
+          </p>
+        </div>
+        <div className="field has-addons user-hotbar">
+          <p className="control">
+            <a className="button" onClick={this.likeProfile}>
+              <span className="icon is-small">
+                <i
+                  className={`fa${
+                    this.state.liked ? 's' : 'r'
+                  } fa-heart has-text-danger`}
+                />
+              </span>
+            </a>
+          </p>
+          <p className="control">
+            <a className="button" disabled>
+              <span className="icon is-small">
+                <i className="far fa-comment" />
+              </span>
+            </a>
+          </p>
+          <p className="control">
+            <a
+              title={
+                !this.state.user.online
+                  ? `Last online: ${timeSince(
+                      new Date(this.state.user.last_online_at)
+                    )} ago...`
+                  : 'Online now!'
+              }
+              className="button"
+            >
+              <span className="icon">
+                <i
+                  className={
+                    'fas fa-circle ' +
+                    (this.state.user.online
+                      ? 'has-text-success'
+                      : 'has-text-danger')
+                  }
+                />
+              </span>
+            </a>
           </p>
         </div>
       </div>

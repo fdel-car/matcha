@@ -17,7 +17,7 @@ const ProfileCard = props => (
                 ? `/api/file/protected/${props.img.filename}`
                 : '/file/default.jpg'
             }
-            alt="Large img"
+            alt={`${props.user.username} img`}
           />
           <button
             type="button"

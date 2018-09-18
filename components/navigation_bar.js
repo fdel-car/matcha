@@ -37,10 +37,12 @@ class NavigationBar extends React.Component {
   }
 
   logout() {
-    fetch('/api/logout', { method: 'GET' }).then(res => {
-      window.localStorage.removeItem('xsrfToken');
-      Router.push('/login');
-    });
+    fetch('/api/logout', { method: 'GET', credentials: 'same-origin' }).then(
+      res => {
+        window.localStorage.removeItem('xsrfToken');
+        Router.push('/login');
+      }
+    );
   }
 
   render() {
