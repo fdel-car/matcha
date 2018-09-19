@@ -1,6 +1,7 @@
 const Select = props => {
   const isValid = (props.errors || []).length === 0;
-  const className = isValid ? ' is-success' : ' is-danger';
+  let className = isValid ? ' is-success' : ' is-danger';
+  if (!props.errors) className = '';
   return (
     <div className="field">
       <label className="label">{props.label}</label>

@@ -429,6 +429,7 @@ class Profile extends React.Component {
                       name="country"
                       expanded={true}
                       selected={this.state.country.value}
+                      errors={this.state.country.errors}
                       onChange={this.selectChange}
                       iconLeft="globe"
                       list={Object.keys(countryList).map(key => {
@@ -459,6 +460,7 @@ class Profile extends React.Component {
                       name="sexuality"
                       expanded={true}
                       selected={this.state.sexuality.value}
+                      errors={this.state.sexuality.errors}
                       onChange={this.selectChange}
                       list={[
                         { label: 'Heterosexual', value: 1 },
