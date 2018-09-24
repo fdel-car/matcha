@@ -295,6 +295,7 @@ router.get('/file/protected/:name', function(req, res, next) {
 
 router.get('/images/:user_id', async function(req, res, next) {
   try {
+    if (!parseInt(req.params.user_id)) return next();
     const results = await db.query(
       'SELECT filename FROM images INNER JOIN users ON users.id=images.user_id WHERE images.user_id = ($1) ORDER BY position',
       [req.params.user_id]
@@ -386,6 +387,7 @@ router.post('/images/swap', async function(req, res, next) {
 
 router.get('/profile/:user_id', async function(req, res, next) {
   try {
+    if (!parseInt(req.params.user_id)) return next();
     const profile = await db.query(
       "SELECT bio, gender, sexuality, to_char(birthday, 'YYYY-MM-DD') as birthday, country, lat, long FROM profiles WHERE user_id = ($1)",
       [req.params.user_id]
@@ -456,6 +458,7 @@ router.post('/profile', async function(req, res, next) {
 
 router.get('/profile/interests/:user_id', async function(req, res, next) {
   try {
+    if (!parseInt(req.params.user_id)) return next();
     const interests = await db.query(
       'SELECT * FROM interests WHERE id IN (SELECT interest_id FROM interest_list WHERE user_id = ($1))',
       [req.params.user_id]
@@ -649,6 +652,7 @@ router.post('/profile/location', async function(req, res, next) {
 
 router.get('/like/:user_id', async function(req, res, next) {
   try {
+    if (!parseInt(req.params.user_id)) return next();
     const inDB = await db.query(
       'SELECT id FROM likes WHERE src_uid = ($1) AND dest_uid = ($2)',
       [req.user.id, req.params.user_id]
@@ -697,6 +701,7 @@ router.post('/like/:user_id', async function(req, res, next) {
 
 router.get('/popularity/:user_id', async function(req, res, next) {
   try {
+    if (!parseInt(req.params.user_id)) return next();
     const likes = await db.query('SELECT id FROM likes WHERE dest_uid = ($1)', [
       req.params.user_id
     ]);
@@ -739,6 +744,40 @@ router.put('/user/password', async function(req, res, next) {
         }
       });
     } else res.status(401).send({ error: 'The password provided is invalid.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/profile/visitors', async function(req, res, next) {
+  try {
+    const visitors = await db.query(
+      'SELECT users.id, username, filename FROM users\
+        INNER JOIN visits ON users.id = src_uid AND dest_uid = ($1)\
+        LEFT JOIN images ON users.id = images.user_id\
+          WHERE\
+            position = 1\
+          ORDER BY visited_at DESC LIMIT 5',
+      [req.user.id]
+    );
+    res.status(200).send(visitors.rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/profile/likers', async function(req, res, next) {
+  try {
+    const likers = await db.query(
+      'SELECT users.id, username, filename FROM users\
+        INNER JOIN likes ON users.id = src_uid AND dest_uid = ($1)\
+        LEFT JOIN images ON users.id = images.user_id\
+          WHERE\
+            position = 1\
+          ORDER BY liked_at DESC LIMIT 5',
+      [req.user.id]
+    );
+    res.status(200).send(likers.rows);
   } catch (err) {
     next(err);
   }

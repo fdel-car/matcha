@@ -4,6 +4,7 @@ import EditableImage from '../components/editable_image';
 import Field from '../components/field';
 import Select from '../components/select';
 import PasswordChangeModal from '../components/password_change';
+import Link from 'next/link';
 import countryList from '../public/other/country-list';
 import { formState, formReady } from '../components/helpers/form_handler';
 const {
@@ -142,6 +143,24 @@ class InterestsInput extends React.PureComponent {
   }
 }
 
+const RoundUserPreview = props => (
+  <Link as={`/user/${props.user.id}`} href={`/user?id=${props.user.id}`}>
+    <a className="card-image">
+      <figure className="image is-1by1">
+        <img
+          title={props.user.username}
+          className="is-rounded"
+          src={
+            props.user.filename
+              ? `/api/file/protected/${props.user.filename}`
+              : '/file/default.jpg'
+          }
+        />
+      </figure>
+    </a>
+  </Link>
+);
+
 class Profile extends React.Component {
   constructor(props) {
     super(props);
@@ -156,7 +175,9 @@ class Profile extends React.Component {
     this.state = {
       images,
       ...formState(rules),
-      interests: []
+      interests: [],
+      visitors: [],
+      likers: []
     };
     this.swapImagePosition = this.swapImagePosition.bind(this);
     this.updateAllFilename = this.updateAllFilename.bind(this);
@@ -193,22 +214,31 @@ class Profile extends React.Component {
 
   async componentDidMount() {
     this.updateAllFilename();
-    fetch(`/api/profile/${this.props.user.id}`, {
-      method: 'GET'
-    }).then(async res => {
-      if (!this.isUnmounted && res.status === 200) {
-        const json = await res.json();
-        if (!this.isUnmounted && Object.keys(json).length > 0)
-          this.setState({
-            bio: { value: json.bio, errors: [] },
-            gender: { value: json.gender, errors: [] },
-            sexuality: { value: json.sexuality, errors: [] },
-            birthday: { value: json.birthday, errors: [] },
-            country: { value: json.country, errors: [] }
-          });
-      }
-    });
     this.updateInterests();
+    const urls = [
+      `/api/profile/${this.props.user.id}`,
+      '/api/profile/visitors',
+      '/api/profile/likers'
+    ];
+    const promises = urls.map(url =>
+      fetch(url, { method: 'GET', credentials: 'same-origin' })
+    );
+    const results = await Promise.all(promises);
+    if (!this.isUnmounted && results.every(res => res.status === 200)) {
+      const json = await results[0].json();
+      const visitors = await results[1].json();
+      const likers = await results[2].json();
+      if (!this.isUnmounted && Object.keys(json).length > 0)
+        this.setState({
+          bio: { value: json.bio, errors: [] },
+          gender: { value: json.gender, errors: [] },
+          sexuality: { value: json.sexuality, errors: [] },
+          birthday: { value: json.birthday, errors: [] },
+          country: { value: json.country, errors: [] },
+          visitors,
+          likers
+        });
+    }
   }
 
   componentWillUnmount() {
@@ -356,6 +386,54 @@ class Profile extends React.Component {
                 interests: this.state.interests
               }}
             />
+          </div>
+        </div>
+
+        <div className="columns">
+          <div className="column">
+            <p className="title is-4">
+              <span className="icon">
+                <i className="far fa-eye" />
+              </span>{' '}
+              Last visits
+            </p>
+            <p className="subtitle is-6">
+              They checked you out! It's your turn now 😏
+            </p>
+            <div className="columns is-gapless is-mobile">
+              {this.state.visitors.length > 0 ? (
+                this.state.visitors.map(visitor => (
+                  <div key={visitor.id} className="column is-one-fifth">
+                    <RoundUserPreview user={visitor} />
+                  </div>
+                ))
+              ) : (
+                <p>Hmm, no one... don't cry, time will come.</p>
+              )}
+            </div>
+          </div>
+          <div className="column">
+            <p className="title is-4">
+              <span className="icon">
+                <i className="fas fa-grin-hearts" />
+              </span>{' '}
+              Last likes
+            </p>
+            <p className="subtitle is-6">
+              Those people liked you, don't hesitate, give a look at their
+              pages!
+            </p>
+            <div className="columns is-gapless is-mobile">
+              {this.state.likers.length > 0 ? (
+                this.state.likers.map(liker => (
+                  <div key={liker.id} className="column is-one-fifth">
+                    <RoundUserPreview user={liker} />
+                  </div>
+                ))
+              ) : (
+                <p>Oups, no one likes you... yet!</p>
+              )}
+            </div>
           </div>
         </div>
 

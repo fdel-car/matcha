@@ -39,6 +39,7 @@ String.prototype.toProperCase = function() {
 
 (async function main() {
   let n = Number(process.argv[2]) || 10;
+  const usersInDB = await db.query('SELECT id FROM users');
   const uploadDir = `${__dirname}/../protected/img/`;
   const files = fs.readdirSync(uploadDir);
   let fake = { male: 0, female: 0 };
@@ -96,8 +97,9 @@ String.prototype.toProperCase = function() {
             false,
             false
           );
-          const n = getRandomInt(3);
-          for (let i = 0; i <= n; i++) {
+          let nbr = getRandomInt(3);
+          let ids = [];
+          for (let i = 0; i <= nbr; i++) {
             let interest = hobbies[getRandomInt(hobbies.length)];
             interest = interest
               .toLowerCase()
@@ -108,19 +110,43 @@ String.prototype.toProperCase = function() {
               false,
               false
             );
-            const result = await db.query(
-              'SELECT * FROM interest_list WHERE user_id = ($1) AND interest_id = ($2)',
-              [res.rows[0].id, inDB.rows[0].id],
-              false,
-              false
-            );
-            if (!result.rows[0])
+            if (!ids.includes(inDB.rows[0].id)) {
               await db.query(
                 'INSERT INTO interest_list (user_id, interest_id) VALUES($1, $2)',
                 [res.rows[0].id, inDB.rows[0].id],
                 false,
                 false
               );
+              ids.push(inDB.rows[0].id);
+            }
+          }
+          nbr = getRandomInt(5);
+          ids = [res.rows[0].id];
+          for (let i = 0; i <= nbr; i++) {
+            const id = getRandomInt(usersInDB.rowCount + n) + 1;
+            if (!ids.includes(id)) {
+              await db.query(
+                'INSERT INTO visits (src_uid, dest_uid, visited_at) VALUES($1, $2, CURRENT_TIMESTAMP)',
+                [res.rows[0].id, id],
+                false,
+                false
+              );
+              ids.push(id);
+            }
+          }
+          nbr = getRandomInt(3);
+          ids = [res.rows[0].id];
+          for (let i = 0; i <= nbr; i++) {
+            const id = getRandomInt(usersInDB.rowCount + n) + 1;
+            if (!ids.includes(id)) {
+              await db.query(
+                'INSERT INTO likes (src_uid, dest_uid, liked_at) VALUES($1, $2, CURRENT_TIMESTAMP)',
+                [res.rows[0].id, id],
+                false,
+                false
+              );
+              ids.push(id);
+            }
           }
           return 'Success';
         } catch (err) {

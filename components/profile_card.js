@@ -65,7 +65,7 @@ const ProfileCard = props => (
                       whiteSpace: 'nowrap'
                     }}
                   >
-                    {Math.round(props.user.distance)} km
+                    {~~props.user.distance} km
                   </small>
                 </>
               ) : null}
