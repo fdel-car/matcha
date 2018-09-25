@@ -185,6 +185,7 @@ class Profile extends React.Component {
     this.handleChange = this.handleChange.bind(this);
     this.selectChange = this.selectChange.bind(this);
     this.submitProfile = this.submitProfile.bind(this);
+    this.initGoogleMap = this.initGoogleMap.bind(this);
     this.controller = new AbortController();
   }
 
@@ -223,7 +224,43 @@ class Profile extends React.Component {
       });
   }
 
+  initGoogleMap() {
+    // See why I get two errors instead of just only one
+    // and prevent multiple script load on code change and hot reload
+    console.log('Script loaded!');
+    let myLatlng = new google.maps.LatLng(-25.363882, 131.044922);
+    let mapOptions = {
+      zoom: 4,
+      center: myLatlng
+    };
+    let map = new google.maps.Map(
+      document.getElementById('google-map'),
+      mapOptions
+    );
+
+    const handleEvent = event => {
+      console.log(event.latLng.lat());
+      console.log(event.latLng.lng());
+    };
+    // Place a draggable marker on the map
+    let marker = new google.maps.Marker({
+      position: myLatlng,
+      map: map,
+      draggable: true,
+      title: 'Drag me!'
+    });
+    marker.addListener('dragend', handleEvent);
+  }
+
   async componentDidMount() {
+    let script = document.createElement('script');
+    script.src =
+      'https://maps.googleapis.com/maps/api/js?key=AIzaSyA8qa_o5pe9XmfFLyZ4HxEAkbgTcnDuzl4';
+    script.async = true;
+    script.addEventListener('load', () => {
+      this.initGoogleMap();
+    });
+    document.body.appendChild(script);
     this.updateAllFilename();
     this.updateInterests();
     const urls = [
@@ -453,6 +490,8 @@ class Profile extends React.Component {
             </div>
           </div>
         </div>
+
+        <div id="google-map" />
 
         <p className="title is-4">
           <span className="icon">

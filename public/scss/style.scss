@@ -260,3 +260,9 @@ section.has-navbar-fixed-top {
 .button.pressed {
   box-shadow: inset 0 0 0.25rem 0.025rem $grey-lighter;
 }
+
+#google-map {
+  margin: 1.5rem 0;
+  width: 100%;
+  height: 400px;
+}
