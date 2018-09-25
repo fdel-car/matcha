@@ -218,10 +218,9 @@ router.use(function(req, res, next) {
       if (!user.rows[0]) return res.sendStatus(400); // Very unlikely
       req.user = user.rows[0];
       if (!/^\/file\/protected\//.test(req.url)) {
-        db.query(
-          'UPDATE users SET last_online_at = CURRENT_TIMESTAMP WHERE id = ($1)',
-          [req.user.id]
-        ).catch(err => next(err));
+        db.query('UPDATE users SET last_online_at = now() WHERE id = ($1)', [
+          req.user.id
+        ]).catch(err => next(err));
       }
       next();
     } catch (err) {
@@ -256,10 +255,10 @@ router.get('/user/:id', async function(req, res, next) {
       )
         .then(async result => {
           if (result.rows[0])
-            await db.query('UPDATE visits SET visited_at = CURRENT_TIMESTAMP');
+            await db.query('UPDATE visits SET visited_at = now()');
           else
             await db.query(
-              'INSERT INTO visits (src_uid, dest_uid, visited_at) VALUES($1, $2, CURRENT_TIMESTAMP)',
+              'INSERT INTO visits (src_uid, dest_uid, visited_at) VALUES($1, $2, now())',
               [req.user.id, req.params.id]
             );
         })
@@ -337,7 +336,10 @@ router.post('/images', async function(req, res, next) {
           'SELECT id, filename FROM images WHERE user_id = ($1) AND position = ($2)',
           [req.user.id, fields.position]
         );
-        if (inDB.rows[0]) {
+        if (
+          inDB.rows[0] &&
+          !/^(male|female)\-.*\.jpg$/.test(inDB.rows[0].filename)
+        ) {
           fs.unlink(
             uploadDir + inDB.rows[0].filename,
             err =>
@@ -389,7 +391,7 @@ router.get('/profile/:user_id', async function(req, res, next) {
   try {
     if (!parseInt(req.params.user_id)) return next();
     const profile = await db.query(
-      "SELECT bio, gender, sexuality, to_char(birthday, 'YYYY-MM-DD') as birthday, country, lat, long FROM profiles WHERE user_id = ($1)",
+      "SELECT bio, gender, sexuality, to_char(birthday, 'YYYY-MM-DD') as birthday, CAST((CURRENT_DATE - birthday) / 365.242199 as FLOAT) as age, country, lat, long FROM profiles WHERE user_id = ($1)",
       [req.params.user_id]
     );
     res.status(200).send(profile.rows[0] || {});
@@ -549,81 +551,39 @@ router.get('/users', async function(req, res, next) {
       });
     const users = await db.query(
       'SELECT 2 * 6371 * asin(sqrt((sin(radians((lat - $2) / 2))) ^ 2 + cos(radians($2)) * cos(radians(lat)) * (sin(radians((long - $3) / 2))) ^ 2)) as distance,\
-      users.id, username, first_name, last_name, bio, birthday, country, filename FROM users\
+      users.id, username, first_name, last_name, bio, birthday, country, filename,\
+      CASE WHEN likes.id IS NOT NULL\
+        THEN TRUE \
+        ELSE FALSE\
+      END AS liked,\
+      CAST((SELECT COUNT(*) FROM likes WHERE dest_uid = users.id) * 3 + (SELECT COUNT(*) FROM visits WHERE dest_uid = users.id) as INTEGER) as popularity,\
+      CAST((CURRENT_DATE - birthday) / 365.242199 as FLOAT) as age\
+      FROM users\
         INNER JOIN profiles ON users.id = profiles.user_id\
-        LEFT JOIN images ON users.id = images.user_id\
+        LEFT JOIN images ON users.id = images.user_id AND images.position = 1\
+        LEFT JOIN likes ON users.id = likes.dest_uid AND likes.src_uid = ($4)\
           WHERE\
-            position = 1 AND\
             verified = TRUE AND\
+            users.id NOT IN (SELECT dest_uid FROM blockages WHERE src_uid = ($4)) AND\
             gender = ANY($1::int[]) AND\
             users.id != ($4) AND\
               CASE WHEN gender=($5) THEN sexuality IN(2, 3)\
               ELSE sexuality IN(1, 3) END',
       [getTargetedGenders(gender, sexuality), lat, long, req.user.id, gender]
     );
-    const promises = [];
-    promises.push(
-      users.rows.map(user => {
-        return db
-          .query(
-            'SELECT * FROM interests WHERE id IN (SELECT interest_id FROM interest_list WHERE user_id = ($1))',
-            [user.id],
-            false,
-            false
-          )
-          .then(result => {
-            user.interests = result.rows;
-          });
-      })
-    );
-    promises.push(
-      users.rows.map(user => {
-        return db
-          .query(
-            'SELECT id FROM likes WHERE src_uid = ($1) AND dest_uid = ($2)',
-            [req.user.id, user.id],
-            false,
-            false
-          )
-          .then(result => {
-            user.liked = !!result.rows[0];
-          });
-      })
-    );
-    promises.push(
-      users.rows.map(user => {
-        return db
-          .query(
-            'SELECT id FROM likes WHERE dest_uid = ($1)',
-            [user.id],
-            false,
-            false
-          )
-          .then(result => {
-            user.likes = result.rowCount;
-          });
-      })
-    );
-    promises.push(
-      users.rows.map(user => {
-        return db
-          .query(
-            'SELECT id FROM visits WHERE dest_uid = ($1)',
-            [user.id],
-            false,
-            false
-          )
-          .then(result => {
-            user.visits = result.rowCount;
-          });
-      })
-    );
-    await Promise.all(promises.map(array => Promise.all(array)));
-    users.rows.forEach(user => {
-      user.popularity = user.visits + user.likes * 3;
-      delete user.likes;
-      delete user.visits;
+    const promises = users.rows.map(user => {
+      return db
+        .query(
+          'SELECT * FROM interests WHERE id IN (SELECT interest_id FROM interest_list WHERE user_id = ($1))',
+          [user.id],
+          false,
+          false
+        )
+        .then(result => {
+          user.interests = result.rows;
+        });
     });
+    await Promise.all(promises);
     res.status(200).send(users.rows);
   } catch (err) {
     next(err);
@@ -653,11 +613,28 @@ router.post('/profile/location', async function(req, res, next) {
 router.get('/like/:user_id', async function(req, res, next) {
   try {
     if (!parseInt(req.params.user_id)) return next();
+    if (req.user.id == req.params.user_id)
+      return res.status(200).send({ liked: false });
     const inDB = await db.query(
       'SELECT id FROM likes WHERE src_uid = ($1) AND dest_uid = ($2)',
       [req.user.id, req.params.user_id]
     );
     res.status(200).send({ liked: !!inDB.rows[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/block/:user_id', async function(req, res, next) {
+  try {
+    if (!parseInt(req.params.user_id)) return next();
+    if (req.user.id == req.params.user_id)
+      return res.status(200).send({ blocked: false });
+    const inDB = await db.query(
+      'SELECT id FROM blockages WHERE src_uid = ($1) AND dest_uid = ($2)',
+      [req.user.id, req.params.user_id]
+    );
+    res.status(200).send({ blocked: !!inDB.rows[0] });
   } catch (err) {
     next(err);
   }
@@ -689,6 +666,36 @@ router.post('/like/:user_id', async function(req, res, next) {
       res.sendStatus(204);
     } else {
       db.query('INSERT INTO likes (src_uid, dest_uid) VALUES ($1, $2)', [
+        req.user.id,
+        req.params.user_id
+      ]);
+      res.sendStatus(201);
+    }
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/block/:user_id', async function(req, res, next) {
+  if (
+    !req.params.user_id ||
+    !parseInt(req.params.user_id) ||
+    req.params.user_id == req.user.id
+  )
+    return res.sendStatus(400);
+  try {
+    const inDB = await db.query(
+      'SELECT id FROM blockages WHERE src_uid = ($1) AND dest_uid = ($2)',
+      [req.user.id, req.params.user_id]
+    );
+    if (inDB.rows[0]) {
+      await db.query(
+        'DELETE FROM blockages WHERE src_uid = ($1) AND dest_uid = ($2)',
+        [req.user.id, req.params.user_id]
+      );
+      res.sendStatus(204);
+    } else {
+      db.query('INSERT INTO blockages (src_uid, dest_uid) VALUES ($1, $2)', [
         req.user.id,
         req.params.user_id
       ]);

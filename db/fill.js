@@ -126,7 +126,7 @@ String.prototype.toProperCase = function() {
             const id = getRandomInt(usersInDB.rowCount + n) + 1;
             if (!ids.includes(id)) {
               await db.query(
-                'INSERT INTO visits (src_uid, dest_uid, visited_at) VALUES($1, $2, CURRENT_TIMESTAMP)',
+                'INSERT INTO visits (src_uid, dest_uid, visited_at) VALUES($1, $2, now())',
                 [res.rows[0].id, id],
                 false,
                 false
@@ -140,7 +140,7 @@ String.prototype.toProperCase = function() {
             const id = getRandomInt(usersInDB.rowCount + n) + 1;
             if (!ids.includes(id)) {
               await db.query(
-                'INSERT INTO likes (src_uid, dest_uid, liked_at) VALUES($1, $2, CURRENT_TIMESTAMP)',
+                'INSERT INTO likes (src_uid, dest_uid, liked_at) VALUES($1, $2, now())',
                 [res.rows[0].id, id],
                 false,
                 false

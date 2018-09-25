@@ -14,7 +14,7 @@ email varchar(64) UNIQUE,\
 password varchar,\
 verified boolean DEFAULT FALSE,\
 online boolean DEFAULT FALSE,\
-last_online_at timestamptz DEFAULT CURRENT_TIMESTAMP,\
+last_online_at timestamptz DEFAULT now(),\
 verify_token uuid DEFAULT NULL)'
     );
     await db.query(
@@ -52,14 +52,21 @@ country char(2))'
 id serial PRIMARY KEY,\
 src_uid integer NOT NULL references users(id),\
 dest_uid integer NOT NULL references users(id),\
-liked_at timestamptz DEFAULT CURRENT_TIMESTAMP)'
+liked_at timestamptz DEFAULT now())'
     );
     await db.query(
       'CREATE TABLE IF NOT EXISTS visits (\
 id serial PRIMARY KEY,\
 src_uid integer NOT NULL references users(id),\
 dest_uid integer NOT NULL references users(id),\
-visited_at timestamptz DEFAULT CURRENT_TIMESTAMP)'
+visited_at timestamptz DEFAULT now())'
+    );
+    await db.query(
+      'CREATE TABLE IF NOT EXISTS blockages (\
+id serial PRIMARY KEY,\
+src_uid integer NOT NULL references users(id),\
+dest_uid integer NOT NULL references users(id),\
+blocked_at timestamptz DEFAULT now())'
     );
     const promises = hobbies.map(hobby => {
       hobby = hobby.toLowerCase().replace(/^[0-9]*\w/, c => c.toUpperCase());

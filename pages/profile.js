@@ -185,31 +185,42 @@ class Profile extends React.Component {
     this.handleChange = this.handleChange.bind(this);
     this.selectChange = this.selectChange.bind(this);
     this.submitProfile = this.submitProfile.bind(this);
+    this.controller = new AbortController();
   }
 
   async updateAllFilename() {
-    const res = await fetch(`/api/images/${this.props.user.id}`, {
-      method: 'GET'
-    });
-    if (!this.isUnmounted && res.status === 200) {
-      const images = await res.json();
-      this.setState(prevState => {
-        return {
-          images: prevState.images.map((img, index) => images[index] || img)
-        };
+    try {
+      const res = await fetch(`/api/images/${this.props.user.id}`, {
+        method: 'GET',
+        signal: this.controller.signal
       });
+      if (res.status === 200) {
+        const images = await res.json();
+        this.setState(prevState => {
+          return {
+            images: prevState.images.map((img, index) => images[index] || img)
+          };
+        });
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') return;
     }
   }
 
-  async updateInterests() {
+  updateInterests() {
     fetch(`/api/profile/interests/${this.props.user.id}`, {
-      method: 'GET'
-    }).then(async res => {
-      if (!this.isUnmounted && res.status === 200) {
-        const interests = await res.json();
-        this.setState({ interests });
-      }
-    });
+      method: 'GET',
+      signal: this.controller.signal
+    })
+      .then(async res => {
+        if (res.status === 200) {
+          const interests = await res.json();
+          this.setState({ interests });
+        }
+      })
+      .catch(err => {
+        if (err.name === 'AbortError') return;
+      });
   }
 
   async componentDidMount() {
@@ -221,14 +232,20 @@ class Profile extends React.Component {
       '/api/profile/likers'
     ];
     const promises = urls.map(url =>
-      fetch(url, { method: 'GET', credentials: 'same-origin' })
+      fetch(url, {
+        method: 'GET',
+        signal: this.controller.signal,
+        credentials: 'same-origin'
+      }).catch(err => {
+        if (err.name === 'AbortError') return;
+      })
     );
     const results = await Promise.all(promises);
-    if (!this.isUnmounted && results.every(res => res.status === 200)) {
+    if (results.every(res => res && res.status === 200)) {
       const json = await results[0].json();
       const visitors = await results[1].json();
       const likers = await results[2].json();
-      if (!this.isUnmounted && Object.keys(json).length > 0)
+      if (Object.keys(json).length > 0)
         this.setState({
           bio: { value: json.bio, errors: [] },
           gender: { value: json.gender, errors: [] },
@@ -242,7 +259,7 @@ class Profile extends React.Component {
   }
 
   componentWillUnmount() {
-    this.isUnmounted = true;
+    this.controller.abort();
   }
 
   swapImagePosition(a, b) {

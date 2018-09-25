@@ -20,10 +20,11 @@ class PasswordChangeModal extends React.Component {
     this.closePasswordModal = this.closePasswordModal.bind(this);
     this.handleChange = this.handleChange.bind(this);
     this.submitChange = this.submitChange.bind(this);
+    this.controller = new AbortController();
   }
 
   componentWillUnmount() {
-    this.isUnmounted = true;
+    this.controller.abort();
   }
 
   closePasswordModal() {
@@ -33,13 +34,16 @@ class PasswordChangeModal extends React.Component {
   openPasswordModal() {
     if (!this.state.list) {
       console.log('Password list is loading...');
-      fetch('/file/breached.txt').then(async response => {
-        if (this.isUnmounted) return console.log('Fetch of the list aborted.');
-        const list = await response.text();
-        if (this.isUnmounted) return console.log('Fetch of the list aborted.');
-        this.setState({ list });
-        console.log('File loaded and stored.');
-      });
+      fetch('/file/breached.txt', { signal: this.controller.signal })
+        .then(async response => {
+          const list = await response.text();
+          this.setState({ list });
+          console.log('File loaded and stored.');
+        })
+        .catch(err => {
+          if (err.name === 'AbortError')
+            console.log('Fetch of the list aborted.');
+        });
     }
     this.setState({ modalIsActive: true });
   }
@@ -84,27 +88,34 @@ class PasswordChangeModal extends React.Component {
     this.setState({ noSubmit: true });
     fetch('/api/user/password', {
       method: 'PUT',
+      signal: this.controller.signal,
       headers: {
         'Content-Type': 'application/json',
         'x-xsrf-token': window.localStorage.getItem('xsrfToken')
       },
       body: JSON.stringify(payload)
-    }).then(async res => {
-      const contentType = (res.headers.get('Content-Type') || '').split(' ')[0];
-      if (res.status === 401 && contentType === 'application/json;') {
-        const json = await res.json();
-        this.setState(prevState => {
-          return {
-            current_password: {
-              value: prevState.current_password.value,
-              errors: [json.error]
-            },
-            noSubmit: false
-          };
-        });
-      } else if (res.status === 204)
-        this.setState({ noSubmit: false, modalIsActive: false });
-    });
+    })
+      .then(async res => {
+        const contentType = (res.headers.get('Content-Type') || '').split(
+          ' '
+        )[0];
+        if (res.status === 401 && contentType === 'application/json;') {
+          const json = await res.json();
+          this.setState(prevState => {
+            return {
+              current_password: {
+                value: prevState.current_password.value,
+                errors: [json.error]
+              },
+              noSubmit: false
+            };
+          });
+        } else if (res.status === 204)
+          this.setState({ noSubmit: false, modalIsActive: false });
+      })
+      .catch(err => {
+        if (err.name === 'AbortError') return;
+      });
   }
 
   render() {

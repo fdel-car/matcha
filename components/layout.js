@@ -54,25 +54,24 @@ function withLayout(Child, protectedPage = false) {
 
     handleRouteChange(url) {
       console.debug(`Starting to load ${url}...`);
-      if (!this.isUnmounted)
-        this.setState({
-          loadingPage:
-            !this.props.authVerified && !this.state.authVerified ? true : false
-        });
+      this.setState({
+        loadingPage:
+          !this.props.authVerified && !this.state.authVerified ? true : false
+      });
     }
 
     async componentDidMount() {
       Router.onRouteChangeStart = url => this.handleRouteChange(url);
       Router.onRouteChangeComplete = () => {
-        if (!this.isUnmounted) this.setState({ loadingPage: false });
+        this.setState({ loadingPage: false });
       };
       Router.onRouteChangeError = err => {
         if (err) console.log(err.message);
-        if (!this.isUnmounted) this.setState({ loadingPage: false });
+        this.setState({ loadingPage: false });
       };
       if (!this.props.authVerified) {
         const user = await validateUser(protectedPage, Router.pathname);
-        if (!this.isUnmounted) this.setState({ user, authVerified: true });
+        this.setState({ user, authVerified: true });
       }
       window.addEventListener(
         'storage',
@@ -84,10 +83,6 @@ function withLayout(Child, protectedPage = false) {
         },
         false
       );
-    }
-
-    componentWillUnmount() {
-      this.isUnmounted = true;
     }
 
     render() {

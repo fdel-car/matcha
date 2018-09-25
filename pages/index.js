@@ -8,10 +8,10 @@ import Link from 'next/link';
 import { throttle } from 'throttle-debounce';
 const { validateInterest } = require('../components/helpers/validation');
 
-function toAge(dateString) {
-  let birthday = new Date(dateString).getTime();
-  return (Date.now() - birthday) / 31557600000; // No bitwise operator here in order to keep the precision
-}
+// function toAge(dateString) {
+//   let birthday = new Date(dateString).getTime();
+//   return (Date.now() - birthday) / 31557600000; // No bitwise operator here in order to keep the precision
+// }
 
 class Home extends React.Component {
   constructor(props) {
@@ -35,6 +35,7 @@ class Home extends React.Component {
       limits: {},
       tagFilter: { value: '', errors: [] }
     };
+    this.controller = new AbortController();
     this.updateUserList = this.updateUserList.bind(this);
     this.locateUser = this.locateUser.bind(this);
     this.likeProfile = this.likeProfile.bind(this);
@@ -138,60 +139,62 @@ class Home extends React.Component {
       }`,
       {
         method: 'GET',
+        signal: this.controller.signal,
         credentials: 'same-origin'
       }
-    ).then(async res => {
-      if (!this.isUnmounted && res.status === 400) {
-        const json = await res.json();
-        if (
-          json.error ===
-          'latitude and longitude are both mandatory query parameter.'
-        )
-          this.setState({
-            loading: false,
-            unauthorized: true,
-            locationMissing: true
+    )
+      .then(async res => {
+        if (res.status === 400) {
+          const json = await res.json();
+          if (
+            json.error ===
+            'latitude and longitude are both mandatory query parameter.'
+          )
+            this.setState({
+              loading: false,
+              unauthorized: true,
+              locationMissing: true
+            });
+        }
+        if (res.status === 200) {
+          const users = await res.json();
+          if (users.length === 0)
+            return this.setState({
+              users: this.state.users,
+              lists: {
+                default: [],
+                age: [],
+                distance: [],
+                popularity: []
+              },
+              loading: false
+            });
+          this.state.scope.minDist = Infinity;
+          this.state.scope.maxDist = 0;
+          this.state.scope.minPopularity = Infinity;
+          this.state.scope.maxPopularity = 0;
+          this.state.scope.minAge = Infinity;
+          this.state.scope.maxAge = 0;
+          users.forEach(user => {
+            if (user.popularity > this.state.scope.maxPopularity)
+              this.state.scope.maxPopularity = user.popularity;
+            if (user.popularity < this.state.scope.minPopularity)
+              this.state.scope.minPopularity = user.popularity;
+            if (user.distance > this.state.scope.maxDist)
+              this.state.scope.maxDist = Math.ceil(user.distance);
+            if (user.distance < this.state.scope.minDist)
+              this.state.scope.minDist = ~~user.distance;
+            if (user.age > this.state.scope.maxAge)
+              this.state.scope.maxAge = Math.ceil(user.age);
+            if (user.age < this.state.scope.minAge)
+              this.state.scope.minAge = ~~user.age;
           });
-      }
-      if (!this.isUnmounted && res.status === 200) {
-        const users = await res.json();
-        if (users.length === 0)
-          return this.setState({
-            users: this.state.users,
-            lists: {
-              default: [],
-              age: [],
-              distance: [],
-              popularity: []
-            },
-            loading: false
-          });
-        this.state.scope.minDist = Infinity;
-        this.state.scope.maxDist = 0;
-        this.state.scope.minPopularity = Infinity;
-        this.state.scope.maxPopularity = 0;
-        this.state.scope.minAge = Infinity;
-        this.state.scope.maxAge = 0;
-        users.forEach(user => {
-          user.age = toAge(user.birthday);
-          if (user.popularity > this.state.scope.maxPopularity)
-            this.state.scope.maxPopularity = user.popularity;
-          if (user.popularity < this.state.scope.minPopularity)
-            this.state.scope.minPopularity = user.popularity;
-          if (user.distance > this.state.scope.maxDist)
-            this.state.scope.maxDist = Math.ceil(user.distance);
-          if (user.distance < this.state.scope.minDist)
-            this.state.scope.minDist = ~~user.distance;
-          if (user.age > this.state.scope.maxAge)
-            this.state.scope.maxAge = Math.ceil(user.age);
-          if (user.age < this.state.scope.minAge)
-            this.state.scope.minAge = ~~user.age;
-        });
-
-        if (!this.isUnmounted)
           this.setState({ users, scope: this.state.scope }, this.defaultSort);
-      }
-    });
+        }
+      })
+      .catch(err => {
+        if (err.name === 'AbortError') return;
+      });
   }
 
   locateUser() {
@@ -200,41 +203,50 @@ class Home extends React.Component {
       fetch(`/api/profile/location`, {
         method: 'POST',
         credentials: 'same-origin',
+        signal: this.controller.signal,
         headers: {
           'Content-Type': 'application/json',
           'x-xsrf-token': window.localStorage.getItem('xsrfToken')
         },
         body: JSON.stringify({ lat, long })
-      }).then(res => {
-        if (res.status === 204) {
-          this.state.profile.lat = lat;
-          this.state.profile.long = long;
-          this.setState(
-            {
-              profile: this.state.profile,
-              unauthorized: false,
-              locationMissing: false
-            },
-            () => this.updateUserList()
-          );
-        }
-      });
+      })
+        .then(res => {
+          if (res.status === 204) {
+            this.state.profile.lat = lat;
+            this.state.profile.long = long;
+            this.setState(
+              {
+                profile: this.state.profile,
+                unauthorized: false,
+                locationMissing: false
+              },
+              () => this.updateUserList()
+            );
+          }
+        })
+        .catch(err => {
+          if (err.name === 'AbortError') return;
+        });
     };
     const locateByIp = async () => {
-      const res = await fetch(
-        `https://ipinfo.io?token=${process.env.ACCESS_TOKEN}`,
-        { headers: { Accept: 'application/json' } }
-      );
-      if (res.status === 200) {
-        const json = await res.json();
-        const loc = json.loc.split(',');
-        storeLocation(loc[0], loc[1]);
+      try {
+        const res = await fetch(
+          `https://ipinfo.io?token=${process.env.ACCESS_TOKEN}`,
+          { headers: { Accept: 'application/json' } }
+        );
+        if (res && res.status === 200) {
+          const json = await res.json();
+          const loc = json.loc.split(',');
+          storeLocation(loc[0], loc[1]);
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') return;
       }
     };
     const geoSuccess = function(position) {
       storeLocation(position.coords.latitude, position.coords.longitude);
     };
-    const geoError = function(error) {
+    const geoError = error => {
       console.debug(error);
       locateByIp();
     };
@@ -248,21 +260,26 @@ class Home extends React.Component {
     fetch(`/api/like/${id}`, {
       method: 'POST',
       credentials: 'same-origin',
+      signal: this.controller.signal,
       headers: {
         'Content-Type': 'application/json',
         'x-xsrf-token': window.localStorage.getItem('xsrfToken')
       }
-    }).then(res => {
-      const index = this.state.users.findIndex(user => user.id === id);
-      if (!this.isUnmounted && res.status === 204) {
-        this.state.users[index].liked = false;
-        this.forceUpdate();
-      }
-      if (!this.isUnmounted && res.status === 201) {
-        this.state.users[index].liked = true;
-        this.forceUpdate();
-      }
-    });
+    })
+      .then(res => {
+        const index = this.state.users.findIndex(user => user.id === id);
+        if (res.status === 204) {
+          this.state.users[index].liked = false;
+          this.forceUpdate();
+        }
+        if (res.status === 201) {
+          this.state.users[index].liked = true;
+          this.forceUpdate();
+        }
+      })
+      .catch(err => {
+        if (err.name === 'AbortError') return;
+      });
   }
 
   async componentDidMount() {
@@ -271,20 +288,26 @@ class Home extends React.Component {
       `/api/profile/interests/${this.props.user.id}`
     ];
     const promises = urls.map(url =>
-      fetch(url, { method: 'GET', credentials: 'same-origin' })
+      fetch(url, {
+        method: 'GET',
+        signal: this.controller.signal,
+        credentials: 'same-origin'
+      }).catch(err => {
+        if (err.name === 'AbortError') return;
+      })
     );
     const results = await Promise.all(promises);
-    if (!this.isUnmounted && results.every(res => res.status === 200)) {
+    if (results.every(res => res && res.status === 200)) {
       const profile = await results[0].json();
       const interests = await results[1].json();
       if (Object.keys(profile).length > 0) {
-        profile.age = toAge(profile.birthday);
         this.setState({ profile, interests }, () => this.updateUserList());
       } else this.setState({ loading: false, unauthorized: true });
     }
   }
 
   componentWillUnmount() {
+    this.controller.abort();
     this.isUnmounted = true;
   }
 
@@ -323,23 +346,22 @@ class Home extends React.Component {
       if (this.state.tagFilter.errors.length !== 0) return;
       regex = new RegExp(`^${this.state.tagFilter.value}`);
     }
-    this.setState({
-      users: this.state.lists[this.state.sort_by].filter(user => {
-        if (user.distance <= limits.lowerDist) return null;
-        if (user.distance >= limits.upperDist) return null;
-        if (user.age <= limits.lowerAge) return null;
-        if (user.age >= limits.upperAge) return null;
-        if (user.popularity < limits.lowerPopularity) return null;
-        if (user.popularity > limits.upperPopularity) return null;
-        if (regex) {
-          for (let i = 0; i < user.interests.length; i++) {
-            if (regex.test(user.interests[i].label)) return user;
-          }
-          return null;
+    const users = this.state.lists[this.state.sort_by].filter(user => {
+      if (user.distance <= limits.lowerDist) return null;
+      if (user.distance >= limits.upperDist) return null;
+      if (user.age <= limits.lowerAge) return null;
+      if (user.age >= limits.upperAge) return null;
+      if (user.popularity < limits.lowerPopularity) return null;
+      if (user.popularity > limits.upperPopularity) return null;
+      if (regex) {
+        for (let i = 0; i < user.interests.length; i++) {
+          if (regex.test(user.interests[i].label)) return user;
         }
-        return user;
-      })
+        return null;
+      }
+      return user;
     });
+    if (!this.isUnmounted) this.setState({ users });
   };
 
   onRangeChange(event) {
@@ -394,6 +416,7 @@ class Home extends React.Component {
   }
 
   render() {
+    console.log(this.state.users);
     return (
       <div className="container">
         <p className="title is-4">

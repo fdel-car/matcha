@@ -27,21 +27,25 @@ class Register extends React.Component {
     this.state = formState(rules);
     this.handleSubmit = this.handleSubmit.bind(this);
     this.handleChange = this.handleChange.bind(this);
+    this.controller = new AbortController();
   }
 
   componentDidMount() {
     console.log('Password list is loading...');
-    fetch('/file/breached.txt').then(async response => {
-      if (this.isUnmounted) return console.log('Fetch of the list aborted.');
-      const list = await response.text();
-      if (this.isUnmounted) return console.log('Fetch of the list aborted.');
-      this.setState({ list });
-      console.log('File loaded and stored.');
-    });
+    fetch('/file/breached.txt', { signal: this.controller.signal })
+      .then(async response => {
+        const list = await response.text();
+        this.setState({ list });
+        console.log('File loaded and stored.');
+      })
+      .catch(err => {
+        if (err.name === 'AbortError')
+          console.log('Fetch of the list aborted.');
+      });
   }
 
   componentWillUnmount() {
-    this.isUnmounted = true;
+    this.controller.abort();
   }
 
   handleSubmit(event) {
