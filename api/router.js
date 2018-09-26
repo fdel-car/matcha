@@ -255,7 +255,10 @@ router.get('/user/:id', async function(req, res, next) {
       )
         .then(async result => {
           if (result.rows[0])
-            await db.query('UPDATE visits SET visited_at = now()');
+            await db.query(
+              'UPDATE visits SET visited_at = now() WHERE id = ($1)',
+              [result.rows[0].id]
+            );
           else
             await db.query(
               'INSERT INTO visits (src_uid, dest_uid, visited_at) VALUES($1, $2, now())',

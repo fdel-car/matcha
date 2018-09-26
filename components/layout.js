@@ -105,7 +105,6 @@ function withLayout(Child, protectedPage = false) {
               integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU"
               crossOrigin="anonymous"
             />
-            <link rel="stylesheet" href="/_next/static/style.css" />
           </Head>
           {(!!user || (authVerified && !protectedPage)) &&
           !this.state.loadingPage ? (
