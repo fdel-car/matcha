@@ -6,7 +6,10 @@ import Field from '../components/field';
 import RangeSlider from '../components/range_slider';
 import Link from 'next/link';
 import { throttle } from 'throttle-debounce';
+import getConfig from 'next/config';
 const { validateInterest } = require('../components/helpers/validation');
+
+const { publicRuntimeConfig } = getConfig();
 
 // function toAge(dateString) {
 //   let birthday = new Date(dateString).getTime();
@@ -231,7 +234,7 @@ class Home extends React.Component {
     const locateByIp = async () => {
       try {
         const res = await fetch(
-          `https://ipinfo.io?token=${process.env.ACCESS_TOKEN}`,
+          `https://ipinfo.io?token=${publicRuntimeConfig.ip_info_access_token}`,
           { headers: { Accept: 'application/json' } }
         );
         if (res && res.status === 200) {
@@ -416,7 +419,6 @@ class Home extends React.Component {
   }
 
   render() {
-    console.log(this.state.users);
     return (
       <div className="container">
         <p className="title is-4">

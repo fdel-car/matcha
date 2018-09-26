@@ -7,6 +7,8 @@ import PasswordChangeModal from '../components/password_change';
 import Link from 'next/link';
 import countryList from '../public/other/country-list';
 import { formState, formReady } from '../components/helpers/form_handler';
+import getConfig from 'next/config';
+import Loading from '../components/loading';
 const {
   validateName,
   validateEmail,
@@ -14,6 +16,8 @@ const {
   validateBio,
   validateInterest
 } = require('../components/helpers/validation');
+
+const { publicRuntimeConfig } = getConfig();
 
 const rules = {
   first_name: { validation: validateName, required: true },
@@ -177,7 +181,8 @@ class Profile extends React.Component {
       ...formState(rules),
       interests: [],
       visitors: [],
-      likers: []
+      likers: [],
+      loading: true
     };
     this.swapImagePosition = this.swapImagePosition.bind(this);
     this.updateAllFilename = this.updateAllFilename.bind(this);
@@ -186,6 +191,7 @@ class Profile extends React.Component {
     this.selectChange = this.selectChange.bind(this);
     this.submitProfile = this.submitProfile.bind(this);
     this.initGoogleMap = this.initGoogleMap.bind(this);
+    this.locateUser = this.locateUser.bind(this);
     this.controller = new AbortController();
   }
 
@@ -224,43 +230,88 @@ class Profile extends React.Component {
       });
   }
 
+  storeLocation = (lat, long) => {
+    return fetch(`/api/profile/location`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      signal: this.controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-xsrf-token': window.localStorage.getItem('xsrfToken')
+      },
+      body: JSON.stringify({ lat, long })
+    });
+  };
+
   initGoogleMap() {
     // See why I get two errors instead of just only one
-    // and prevent multiple script load on code change and hot reload
-    console.log('Script loaded!');
-    let myLatlng = new google.maps.LatLng(-25.363882, 131.044922);
+    const { lat, long } = this.state.coords;
+    if (!lat || !long) return;
+    let latLng = new google.maps.LatLng(lat, long);
     let mapOptions = {
-      zoom: 4,
-      center: myLatlng
+      zoom: 8,
+      center: latLng,
+      gestureHandling: 'cooperative'
+      // mapTypeId: 'hybrid'
     };
     let map = new google.maps.Map(
       document.getElementById('google-map'),
       mapOptions
     );
-
     const handleEvent = event => {
-      console.log(event.latLng.lat());
-      console.log(event.latLng.lng());
+      const lat = event.latLng.lat();
+      const long = event.latLng.lng();
+      if (Math.abs(lat) > 85.05115) return;
+      this.storeLocation(lat, long)
+        .then(res => {
+          if (res.status === 200) this.setState({ coords: { lat, long } });
+        })
+        .catch(err => {
+          if (err.name === 'AbortError') return;
+        });
     };
-    // Place a draggable marker on the map
     let marker = new google.maps.Marker({
-      position: myLatlng,
+      position: latLng,
       map: map,
       draggable: true,
-      title: 'Drag me!'
+      title: 'Your position.'
     });
     marker.addListener('dragend', handleEvent);
+    let lastValidCenter = map.getCenter();
+    google.maps.event.addListener(map, 'dragend', function() {
+      if (Math.abs(map.getCenter().lat()) < 85.05115) {
+        lastValidCenter = map.getCenter();
+        return;
+      }
+      map.panTo(lastValidCenter);
+    });
+  }
+
+  isScriptLoaded(url) {
+    if (!url) url = 'http://xxx.co.uk/xxx/script.js';
+    let scripts = document.getElementsByTagName('script');
+    for (let i = scripts.length; i--; ) {
+      if (scripts[i].src == url) return true;
+    }
+    return false;
+  }
+
+  loadGoogleMapScript() {
+    const url = `https://maps.googleapis.com/maps/api/js?key=${
+      publicRuntimeConfig.google_maps_access_token
+    }`;
+    if (!this.isScriptLoaded(url)) {
+      let script = document.createElement('script');
+      script.src = url;
+      script.async = true;
+      script.addEventListener('load', () => {
+        this.initGoogleMap();
+      });
+      document.body.appendChild(script);
+    } else this.initGoogleMap();
   }
 
   async componentDidMount() {
-    let script = document.createElement('script');
-    script.src =
-      'https://maps.googleapis.com/maps/api/js?key=AIzaSyA8qa_o5pe9XmfFLyZ4HxEAkbgTcnDuzl4';
-    script.async = true;
-    script.addEventListener('load', () => {
-      this.initGoogleMap();
-    });
-    document.body.appendChild(script);
     this.updateAllFilename();
     this.updateInterests();
     const urls = [
@@ -282,16 +333,23 @@ class Profile extends React.Component {
       const json = await results[0].json();
       const visitors = await results[1].json();
       const likers = await results[2].json();
-      if (Object.keys(json).length > 0)
-        this.setState({
-          bio: { value: json.bio, errors: [] },
-          gender: { value: json.gender, errors: [] },
-          sexuality: { value: json.sexuality, errors: [] },
-          birthday: { value: json.birthday, errors: [] },
-          country: { value: json.country, errors: [] },
-          visitors,
-          likers
-        });
+      if (Object.keys(json).length > 0) {
+        this.setState(
+          {
+            bio: { value: json.bio, errors: [] },
+            gender: { value: json.gender, errors: [] },
+            sexuality: { value: json.sexuality, errors: [] },
+            birthday: { value: json.birthday, errors: [] },
+            country: { value: json.country, errors: [] },
+            coords: { lat: json.lat, long: json.long },
+            visitors,
+            likers,
+            loading: false,
+            locationMissing: !json.lat || !json.long
+          },
+          () => this.loadGoogleMapScript()
+        );
+      }
     }
   }
 
@@ -322,6 +380,52 @@ class Profile extends React.Component {
           return { images: swappedImgArray };
         });
     });
+  }
+
+  locateUser() {
+    this.setState({ loading: true });
+    const localStoreLocation = (lat, long) =>
+      this.storeLocation(lat, long)
+        .then(res => {
+          if (res.status === 204) {
+            this.setState(
+              {
+                coords: { lat, long },
+                locationMissing: false,
+                loading: false
+              },
+              () => this.initGoogleMap()
+            );
+          }
+        })
+        .catch(err => {
+          if (err.name === 'AbortError') return;
+        });
+    const locateByIp = async () => {
+      try {
+        const res = await fetch(
+          `https://ipinfo.io?token=${publicRuntimeConfig.ip_info_access_token}`,
+          { headers: { Accept: 'application/json' } }
+        );
+        if (res && res.status === 200) {
+          const json = await res.json();
+          const loc = json.loc.split(',');
+          localStoreLocation(loc[0], loc[1]);
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    };
+    const geoSuccess = function(position) {
+      localStoreLocation(position.coords.latitude, position.coords.longitude);
+    };
+    const geoError = error => {
+      console.debug(error);
+      locateByIp();
+    };
+    if (navigator.geolocation)
+      navigator.geolocation.getCurrentPosition(geoSuccess, geoError);
+    else locateByIp();
   }
 
   handleChange(event) {
@@ -491,141 +595,164 @@ class Profile extends React.Component {
           </div>
         </div>
 
-        <div id="google-map" />
+        <div>
+          <p className="title is-4">
+            <span className="icon">
+              <i className="fas fa-globe" />
+            </span>{' '}
+            Localisation
+          </p>
+          <p className="subtitle is-6">
+            Drag the marker on the map in order to update your localisation.
+          </p>
+          {this.state.loading ? (
+            <Loading />
+          ) : this.state.locationMissing ? (
+            <div style={{ marginBottom: '1.5rem' }}>
+              Hey {this.props.user.username} 😊, we first need to{' '}
+              <a onClick={this.locateUser}>locate you</a> in order to display
+              the map with your location.
+            </div>
+          ) : (
+            <div id="google-map" />
+          )}
+        </div>
 
-        <p className="title is-4">
-          <span className="icon">
-            <i className="fas fa-info-circle" />
-          </span>{' '}
-          Informations
-        </p>
-        <p className="subtitle is-6">
-          Everything you think that people should know about you.
-        </p>
-        <div className="card">
-          <div className="card-content">
-            <InterestsInput
-              user={this.props.user}
-              interests={this.state.interests}
-              updateInterests={this.updateInterests}
-            />
-            <hr />
-            <form onSubmit={this.submitProfile}>
-              <div className="fields">
-                <div className="field is-horizontal">
-                  <div className="field-body">
-                    <Field
-                      placeholder="e.g. Caroline"
-                      label="First Name"
-                      type="text"
-                      name="first_name"
-                      autoComplete="given-name"
-                      onChange={this.handleChange}
-                      value={this.state.first_name.value}
-                      errors={this.state.first_name.errors}
-                    />
-                    <Field
-                      placeholder="e.g. Gilbert"
-                      label="Last Name"
-                      type="text"
-                      name="last_name"
-                      autoComplete="family-name"
-                      onChange={this.handleChange}
-                      value={this.state.last_name.value}
-                      errors={this.state.last_name.errors}
-                    />
-                    <Field
-                      iconLeft="birthday-cake"
-                      label="Birthday"
-                      type="date"
-                      name="birthday"
-                      onChange={this.handleChange}
-                      value={this.state.birthday.value}
-                      errors={this.state.birthday.errors}
-                    />
-                  </div>
-                </div>
-                <div className="field is-horizontal">
-                  <div className="field-body">
-                    <Field
-                      iconLeft="envelope"
-                      placeholder="e.g. caroline.gilbert@example.com"
-                      label="Email"
-                      type="email"
-                      name="email"
-                      autoComplete="email"
-                      onChange={this.handleChange}
-                      value={this.state.email.value}
-                      errors={this.state.email.errors}
-                    />
-                    <Select
-                      label="Country"
-                      name="country"
-                      expanded={true}
-                      selected={this.state.country.value}
-                      errors={this.state.country.errors}
-                      onChange={this.selectChange}
-                      iconLeft="globe"
-                      list={Object.keys(countryList).map(key => {
-                        return {
-                          label: countryList[key],
-                          value: key
-                        };
-                      })}
-                    />
-                  </div>
-                </div>
-                <div className="field is-horizontal">
-                  <div className="field-body">
-                    <Select
-                      label="Gender"
-                      name="gender"
-                      expanded={true}
-                      selected={this.state.gender.value}
-                      errors={this.state.gender.errors}
-                      onChange={this.selectChange}
-                      list={[
-                        { label: 'Male', value: 1 },
-                        { label: 'Female', value: 2 }
-                      ]}
-                    />
-                    <Select
-                      label="Sexuality"
-                      name="sexuality"
-                      expanded={true}
-                      selected={this.state.sexuality.value}
-                      errors={this.state.sexuality.errors}
-                      onChange={this.selectChange}
-                      list={[
-                        { label: 'Heterosexual', value: 1 },
-                        { label: 'Homosexual', value: 2 },
-                        { label: 'Bisexual', value: 3 }
-                      ]}
-                    />
-                  </div>
-                </div>
-                <Field
-                  placeholder="What did you do study? Where are you from? Don't be shy people will be more inclined to trust you! 😊"
-                  label="Bio (tell us about you)"
-                  name="bio"
-                  type="textarea"
-                  onChange={this.handleChange}
-                  value={this.state.bio.value}
-                  errors={this.state.bio.errors}
-                />
-              </div>
-              <input
-                className="button is-info"
-                type="submit"
-                value="Update"
-                disabled={
-                  formReady(rules, this.state) || this.state.noSubmit
-                    ? true
-                    : null
-                }
+        <div>
+          <p className="title is-4">
+            <span className="icon">
+              <i className="fas fa-info-circle" />
+            </span>{' '}
+            Informations
+          </p>
+          <p className="subtitle is-6">
+            Everything you think that people should know about you.
+          </p>
+          <div className="card">
+            <div className="card-content">
+              <InterestsInput
+                user={this.props.user}
+                interests={this.state.interests}
+                updateInterests={this.updateInterests}
               />
-            </form>
-            <PasswordChangeModal user={this.props.user} />
+              <hr />
+              <form onSubmit={this.submitProfile}>
+                <div className="fields">
+                  <div className="field is-horizontal">
+                    <div className="field-body">
+                      <Field
+                        placeholder="e.g. Caroline"
+                        label="First Name"
+                        type="text"
+                        name="first_name"
+                        autoComplete="given-name"
+                        onChange={this.handleChange}
+                        value={this.state.first_name.value}
+                        errors={this.state.first_name.errors}
+                      />
+                      <Field
+                        placeholder="e.g. Gilbert"
+                        label="Last Name"
+                        type="text"
+                        name="last_name"
+                        autoComplete="family-name"
+                        onChange={this.handleChange}
+                        value={this.state.last_name.value}
+                        errors={this.state.last_name.errors}
+                      />
+                      <Field
+                        iconLeft="birthday-cake"
+                        label="Birthday"
+                        type="date"
+                        name="birthday"
+                        onChange={this.handleChange}
+                        value={this.state.birthday.value}
+                        errors={this.state.birthday.errors}
+                      />
+                    </div>
+                  </div>
+                  <div className="field is-horizontal">
+                    <div className="field-body">
+                      <Field
+                        iconLeft="envelope"
+                        placeholder="e.g. caroline.gilbert@example.com"
+                        label="Email"
+                        type="email"
+                        name="email"
+                        autoComplete="email"
+                        onChange={this.handleChange}
+                        value={this.state.email.value}
+                        errors={this.state.email.errors}
+                      />
+                      <Select
+                        label="Country"
+                        name="country"
+                        expanded={true}
+                        selected={this.state.country.value}
+                        errors={this.state.country.errors}
+                        onChange={this.selectChange}
+                        iconLeft="globe"
+                        list={Object.keys(countryList).map(key => {
+                          return {
+                            label: countryList[key],
+                            value: key
+                          };
+                        })}
+                      />
+                    </div>
+                  </div>
+                  <div className="field is-horizontal">
+                    <div className="field-body">
+                      <Select
+                        label="Gender"
+                        name="gender"
+                        expanded={true}
+                        selected={this.state.gender.value}
+                        errors={this.state.gender.errors}
+                        onChange={this.selectChange}
+                        list={[
+                          { label: 'Male', value: 1 },
+                          { label: 'Female', value: 2 }
+                        ]}
+                      />
+                      <Select
+                        label="Sexuality"
+                        name="sexuality"
+                        expanded={true}
+                        selected={this.state.sexuality.value}
+                        errors={this.state.sexuality.errors}
+                        onChange={this.selectChange}
+                        list={[
+                          { label: 'Heterosexual', value: 1 },
+                          { label: 'Homosexual', value: 2 },
+                          { label: 'Bisexual', value: 3 }
+                        ]}
+                      />
+                    </div>
+                  </div>
+                  <Field
+                    placeholder="What did you do study? Where are you from? Don't be shy people will be more inclined to trust you! 😊"
+                    label="Bio (tell us about you)"
+                    name="bio"
+                    type="textarea"
+                    onChange={this.handleChange}
+                    value={this.state.bio.value}
+                    errors={this.state.bio.errors}
+                  />
+                </div>
+                <input
+                  className="button is-info"
+                  type="submit"
+                  value="Update"
+                  disabled={
+                    formReady(rules, this.state) || this.state.noSubmit
+                      ? true
+                      : null
+                  }
+                />
+              </form>
+              <PasswordChangeModal user={this.props.user} />
+            </div>
           </div>
         </div>
       </div>
