@@ -353,7 +353,7 @@ class Home extends React.Component {
     const list = this.state.lists[this.state.sort_by];
     if (!list) return;
     const users = list.filter(user => {
-      if (user.distance <= limits.lowerDist) return null;
+      if (user.distance < limits.lowerDist) return null;
       if (user.distance >= limits.upperDist) return null;
       if (user.age <= limits.lowerAge) return null;
       if (user.age >= limits.upperAge) return null;
