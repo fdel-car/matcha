@@ -13,8 +13,19 @@ const NavigationItem = props => (
     >
       <i
         className={'icon fas ' + props.icon}
-        style={{ marginRight: '0.25rem' }}
-      />
+        style={{
+          marginRight: '0.25rem',
+          position: !props.socket || 'relative'
+        }}
+      >
+        {props.socket ? (
+          <div
+            className={`circle ${
+              props.socket.connected ? 'is-success' : 'is-danger'
+            } ${props.label.toLowerCase()}`}
+          />
+        ) : null}
+      </i>
       {props.label}
     </a>
   </Link>
@@ -86,6 +97,7 @@ class NavigationBar extends React.Component {
                 icon="fa-user-alt"
                 label="Profile"
                 pathname="/profile"
+                socket={this.props.socket}
               />
             </div>
             <div className="navbar-end">

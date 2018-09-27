@@ -275,3 +275,20 @@ section.has-navbar-fixed-top {
   width: 100%;
   height: 400px;
 }
+
+div.circle {
+  width: 0.5rem;
+  height: 0.5rem;
+  position: absolute;
+  border-radius: 1rem;
+  &.is-success {
+    background-color: $green;
+  }
+  &.is-danger {
+    background-color: $red;
+  }
+  &.profile {
+    top: 55%;
+    right: 5%;
+  }
+}

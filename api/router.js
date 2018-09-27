@@ -75,9 +75,6 @@ router.post('/login', async (req, res, next) => {
         httpOnly: true
         // maxAge: 3600000
       });
-      db.query('UPDATE users SET online = TRUE WHERE id = ($1)', [
-        user.rows[0].id
-      ]).catch(err => next(err));
       res.status(200).json({ xsrfToken });
     } else {
       return res.status(401).json({ error: 'Invalid password provided.' });
@@ -217,11 +214,6 @@ router.use(function(req, res, next) {
       );
       if (!user.rows[0]) return res.sendStatus(400); // Very unlikely
       req.user = user.rows[0];
-      if (!/^\/file\/protected\//.test(req.url)) {
-        db.query('UPDATE users SET last_online_at = now() WHERE id = ($1)', [
-          req.user.id
-        ]).catch(err => next(err));
-      }
       next();
     } catch (err) {
       next(err);
@@ -231,9 +223,6 @@ router.use(function(req, res, next) {
 
 router.get('/logout', (req, res) => {
   res.clearCookie('jwt', { path: '/', httpOnly: true });
-  db.query('UPDATE users SET online = FALSE WHERE id = ($1)', [
-    req.user.id
-  ]).catch(err => next(err));
   res.sendStatus(200);
 });
 
@@ -339,17 +328,15 @@ router.post('/images', async function(req, res, next) {
           'SELECT id, filename FROM images WHERE user_id = ($1) AND position = ($2)',
           [req.user.id, fields.position]
         );
-        if (
-          inDB.rows[0] &&
-          !/^(male|female)\-.*\.jpg$/.test(inDB.rows[0].filename)
-        ) {
-          fs.unlink(
-            uploadDir + inDB.rows[0].filename,
-            err =>
-              err
-                ? console.error(`Error in previous file deletion: ${err}`)
-                : null
-          );
+        if (inDB.rows[0]) {
+          if (!/^(male|female)\-.*\.jpg$/.test(inDB.rows[0].filename))
+            fs.unlink(
+              uploadDir + inDB.rows[0].filename,
+              err =>
+                err
+                  ? console.error(`Error in previous file deletion: ${err}`)
+                  : null
+            );
           await db.query('UPDATE images SET filename = ($1) WHERE id = ($2)', [
             filename,
             inDB.rows[0].id

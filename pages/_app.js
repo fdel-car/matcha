@@ -5,6 +5,7 @@ import Router from 'next/router';
 import Loading from '../components/loading';
 import NavigationBar from '../components/navigation_bar';
 import '../public/scss/style.scss';
+import io from 'socket.io-client';
 
 export default class Matcha extends App {
   constructor(props) {
@@ -16,6 +17,7 @@ export default class Matcha extends App {
     };
     this.validateUser = this.validateUser.bind(this);
     this.storageListener = this.storageListener.bind(this);
+    this.socket = null;
   }
 
   async validateUser(protectedPage, pathname) {
@@ -38,6 +40,8 @@ export default class Matcha extends App {
   };
 
   disconnectUser = async () => {
+    this.socket.close();
+    // this.socket = null;
     this.setState({ user: null });
   };
 
@@ -46,6 +50,8 @@ export default class Matcha extends App {
       this.props.pageProps.protectedPage,
       Router.pathname
     );
+    this.socket.open();
+    // this.socket = io();
     this.setState({ user });
   };
 
@@ -69,18 +75,20 @@ export default class Matcha extends App {
       this.props.pageProps.protectedPage,
       Router.pathname
     );
+    this.socket = io();
+    this.socket.on('connect', () => {
+      this.forceUpdate();
+    });
     this.setState({ user, authVerified: true });
     window.addEventListener('storage', this.storageListener, false);
-    // If the user is connected, connect to socket.io (don't forget when the user logs in)
   }
 
   componentWillUnmount() {
-    console.log('Not supposed to see that...');
     window.removeEventListener('storage', this.storageListener, false);
-    // Disconnect from socket.io
   }
 
   render() {
+    if (this.socket) console.log('Socket connected:', this.socket.connected);
     const { Component, pageProps } = this.props;
     const user = this.state.user;
     if (!this.state.loadingPage && this.state.authVerified) {
@@ -109,7 +117,10 @@ export default class Matcha extends App {
         !this.state.loadingPage ? (
           <>
             {pageProps.protectedPage ? (
-              <NavigationBar disconnectUser={this.disconnectUser} />
+              <NavigationBar
+                disconnectUser={this.disconnectUser}
+                socket={this.socket}
+              />
             ) : null}
             <section
               className={

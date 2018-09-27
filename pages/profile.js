@@ -256,7 +256,7 @@ class Profile extends React.Component {
       gestureHandling: 'cooperative'
       // mapTypeId: 'hybrid'
     };
-    const map = new google.maps.Map(
+    this.map = new google.maps.Map(
       document.getElementById('google-map'),
       mapOptions
     );
@@ -272,27 +272,26 @@ class Profile extends React.Component {
           if (err.name === 'AbortError') return;
         });
     };
-    const marker = new google.maps.Marker({
+    this.marker = new google.maps.Marker({
       position: latLng,
-      map: map,
+      map: this.map,
       icon:
         'http://maps.google.com/mapfiles/marker' +
         this.props.user.first_name[0] +
         '.png',
       draggable: true,
       animation: google.maps.Animation.DROP,
-      title: 'Your position.'
+      title: 'Your position'
     });
-    marker.addListener('dragend', dragEndEvent);
-    let lastValidCenter = map.getCenter();
-    google.maps.event.addListener(map, 'idle', function() {
-      if (Math.abs(map.getCenter().lat()) < 85.05115) {
-        lastValidCenter = map.getCenter();
+    this.marker.addListener('dragend', dragEndEvent);
+    let lastValidCenter = this.map.getCenter();
+    google.maps.event.addListener(this.map, 'idle', () => {
+      if (Math.abs(this.map.getCenter().lat()) < 85.05115) {
+        lastValidCenter = this.map.getCenter();
         return;
       }
-      map.panTo(lastValidCenter);
+      this.map.panTo(lastValidCenter);
     });
-    this.setState({ marker, map });
   }
 
   isScriptLoaded(url) {
@@ -436,11 +435,10 @@ class Profile extends React.Component {
   updateMarkerPos() {
     const { lat, long } = this.state.coords;
     if (!lat || !long) return;
-    if (this.state.marker) {
+    if (this.marker) {
       const latLng = new google.maps.LatLng(lat, long);
-      this.state.marker.setPosition(latLng);
-      this.state.map.panTo(latLng);
-      this.forceUpdate();
+      this.marker.setPosition(latLng);
+      this.map.panTo(latLng);
     }
   }
 
