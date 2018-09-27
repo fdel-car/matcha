@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import withLayout from '../components/layout';
+import withInitialProps from '../components/initial_props';
 import Field from '../components/field';
 import RedirectDelayed from '../components/redirect_delayed';
 import { formState, formReady } from '../components/helpers/form_handler';
@@ -231,4 +231,4 @@ class Register extends React.Component {
   }
 }
 
-export default withLayout(Register);
+export default withInitialProps(Register);

@@ -181,6 +181,15 @@ section.has-navbar-fixed-top {
   }
 }
 
+@media screen and (max-width: 358px) {
+  .modal .delete {
+    display: none;
+  }
+  .modal-card-title {
+    width: 100%;
+  }
+}
+
 .slider-container {
   // width: 100%;
   input[type='range'] {

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import withLayout from '../components/layout';
+import withInitialProps from '../components/initial_props';
 import Field from '../components/field';
 import Router from 'next/router';
 import { formState, formReady } from '../components/helpers/form_handler';
@@ -39,13 +39,15 @@ class Login extends React.Component {
       },
       body: JSON.stringify(payload)
     }).then(async response => {
-      const contentType = (response.headers.get('Content-Type') || '').split(' ')[0];
+      const contentType = (response.headers.get('Content-Type') || '').split(
+        ' '
+      )[0];
       if (contentType === 'application/json;') {
         const json = await response.json();
         if (response.status === 200) {
           try {
             window.localStorage.setItem('xsrfToken', json.xsrfToken);
-            Router.push('/');
+            this.props.connectUser();
           } catch (err) {
             console.warning(err.message); // localStorage is most probably full, highly unlikely
           }
@@ -137,4 +139,4 @@ class Login extends React.Component {
   }
 }
 
-export default withLayout(Login);
+export default withInitialProps(Login);

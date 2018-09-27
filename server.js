@@ -9,6 +9,7 @@ const handle = app.getRequestHandler();
 const apiEndpoints = require('./api/router');
 const imgExtension = ['gif', 'png', 'jpg', 'jpeg', 'ico'];
 
+// Need to add socket.io on the server side
 app
   .prepare()
   .then(() => {

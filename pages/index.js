@@ -1,4 +1,4 @@
-import withLayout from '../components/layout';
+import withInitialProps from '../components/initial_props';
 import ProfileCard from '../components/profile_card';
 import Loading from '../components/loading';
 import Select from '../components/select';
@@ -36,7 +36,8 @@ class Home extends React.Component {
         maxPopularity: 100
       },
       limits: {},
-      tagFilter: { value: '', errors: [] }
+      tagFilter: { value: '', errors: [] },
+      lists: {}
     };
     this.controller = new AbortController();
     this.updateUserList = this.updateUserList.bind(this);
@@ -349,7 +350,9 @@ class Home extends React.Component {
       if (this.state.tagFilter.errors.length !== 0) return;
       regex = new RegExp(`^${this.state.tagFilter.value}`);
     }
-    const users = this.state.lists[this.state.sort_by].filter(user => {
+    const list = this.state.lists[this.state.sort_by];
+    if (!list) return;
+    const users = list.filter(user => {
       if (user.distance <= limits.lowerDist) return null;
       if (user.distance >= limits.upperDist) return null;
       if (user.age <= limits.lowerAge) return null;
@@ -556,4 +559,4 @@ class Home extends React.Component {
   }
 }
 
-export default withLayout(Home, true);
+export default withInitialProps(Home, true);

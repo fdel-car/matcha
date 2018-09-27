@@ -1,4 +1,4 @@
-import withLayout from '../components/layout';
+import withInitialProps from '../components/initial_props';
 import { withRouter } from 'next/router';
 import countryList from '../public/other/country-list';
 import Loading from '../components/loading';
@@ -310,4 +310,4 @@ class User extends React.Component {
   }
 }
 
-export default withLayout(withRouter(User), true);
+export default withInitialProps(withRouter(User), true);

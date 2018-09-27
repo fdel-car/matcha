@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import withLayout from '../components/layout';
+import withInitialProps from '../components/initial_props';
 import RedirectDelayed from '../components/redirect_delayed';
-import fetch from 'isomorphic-fetch';
+import nodeFetch from 'node-fetch';
 import Router from 'next/router';
 
 const assignClass = statusCode => {
@@ -31,10 +31,10 @@ class Verify extends React.Component {
     if (!query || !query.email || !query.token)
       return {
         error:
-          'You received a link in your mailbox, it will allow us to verify your account.'
+          'You received a link in your mailbox (if you registered of course), it will allow us to verify your account.'
       };
     const baseUrl = req ? `${req.protocol}://${req.get('Host')}` : ''; // See 'Host header attack'
-    const res = await fetch(baseUrl + '/api/verify', {
+    const res = await (baseUrl ? nodeFetch : fetch)(baseUrl + '/api/verify', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -155,4 +155,4 @@ class Verify extends React.Component {
   }
 }
 
-export default withLayout(Verify);
+export default withInitialProps(Verify);

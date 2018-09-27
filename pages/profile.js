@@ -1,4 +1,4 @@
-import withLayout from '../components/layout';
+import withInitialProps from '../components/initial_props';
 import ProfileCard from '../components/profile_card';
 import EditableImage from '../components/editable_image';
 import Field from '../components/field';
@@ -182,7 +182,8 @@ class Profile extends React.Component {
       interests: [],
       visitors: [],
       likers: [],
-      loading: true
+      loading: true,
+      coords: {}
     };
     this.swapImagePosition = this.swapImagePosition.bind(this);
     this.updateAllFilename = this.updateAllFilename.bind(this);
@@ -191,6 +192,7 @@ class Profile extends React.Component {
     this.selectChange = this.selectChange.bind(this);
     this.submitProfile = this.submitProfile.bind(this);
     this.initGoogleMap = this.initGoogleMap.bind(this);
+    this.updateMarkerPos = this.updateMarkerPos.bind(this);
     this.locateUser = this.locateUser.bind(this);
     this.controller = new AbortController();
   }
@@ -247,18 +249,18 @@ class Profile extends React.Component {
     // See why I get two errors instead of just only one
     const { lat, long } = this.state.coords;
     if (!lat || !long) return;
-    let latLng = new google.maps.LatLng(lat, long);
-    let mapOptions = {
+    const latLng = new google.maps.LatLng(lat, long);
+    const mapOptions = {
       zoom: 8,
       center: latLng,
       gestureHandling: 'cooperative'
       // mapTypeId: 'hybrid'
     };
-    let map = new google.maps.Map(
+    const map = new google.maps.Map(
       document.getElementById('google-map'),
       mapOptions
     );
-    const handleEvent = event => {
+    const dragEndEvent = event => {
       const lat = event.latLng.lat();
       const long = event.latLng.lng();
       if (Math.abs(lat) > 85.05115) return;
@@ -270,21 +272,27 @@ class Profile extends React.Component {
           if (err.name === 'AbortError') return;
         });
     };
-    let marker = new google.maps.Marker({
+    const marker = new google.maps.Marker({
       position: latLng,
       map: map,
+      icon:
+        'http://maps.google.com/mapfiles/marker' +
+        this.props.user.first_name[0] +
+        '.png',
       draggable: true,
+      animation: google.maps.Animation.DROP,
       title: 'Your position.'
     });
-    marker.addListener('dragend', handleEvent);
+    marker.addListener('dragend', dragEndEvent);
     let lastValidCenter = map.getCenter();
-    google.maps.event.addListener(map, 'dragend', function() {
+    google.maps.event.addListener(map, 'idle', function() {
       if (Math.abs(map.getCenter().lat()) < 85.05115) {
         lastValidCenter = map.getCenter();
         return;
       }
       map.panTo(lastValidCenter);
     });
+    this.setState({ marker, map });
   }
 
   isScriptLoaded(url) {
@@ -296,11 +304,50 @@ class Profile extends React.Component {
     return false;
   }
 
+  preventGoogleFont() {
+    // Preventing the Google Maps libary from downloading an extra font
+    // https://stackoverflow.com/questions/25523806/google-maps-v3-prevent-api-from-loading-roboto-font
+    const head = document.getElementsByTagName('head')[0];
+    const insertBefore = head.insertBefore;
+    head.insertBefore = function(newElement, referenceElement) {
+      // Intercept font download
+      if (
+        newElement.href &&
+        newElement.href.indexOf(
+          'https://fonts.googleapis.com/css?family=Roboto'
+        ) === 0
+      ) {
+        return;
+      }
+      // Intercept style elements for IEs
+      if (
+        newElement.tagName.toLowerCase() === 'style' &&
+        newElement.styleSheet &&
+        newElement.styleSheet.cssText &&
+        newElement.styleSheet.cssText
+          .replace('\r\n', '')
+          .indexOf('.gm-style') === 0
+      ) {
+        return;
+      }
+      // Intercept style elements for other browsers
+      if (
+        newElement.tagName.toLowerCase() === 'style' &&
+        newElement.innerHTML &&
+        newElement.innerHTML.replace('\r\n', '').indexOf('.gm-style') === 0
+      ) {
+        return;
+      }
+      insertBefore.call(head, newElement, referenceElement);
+    };
+  }
+
   loadGoogleMapScript() {
     const url = `https://maps.googleapis.com/maps/api/js?key=${
       publicRuntimeConfig.google_maps_access_token
     }`;
     if (!this.isScriptLoaded(url)) {
+      this.preventGoogleFont();
       let script = document.createElement('script');
       script.src = url;
       script.async = true;
@@ -349,7 +396,11 @@ class Profile extends React.Component {
           },
           () => this.loadGoogleMapScript()
         );
-      }
+      } else
+        this.setState(
+          { loading: false, locationMissing: true, unauthorized: true },
+          () => this.loadGoogleMapScript()
+        );
     }
   }
 
@@ -382,8 +433,23 @@ class Profile extends React.Component {
     });
   }
 
+  updateMarkerPos() {
+    const { lat, long } = this.state.coords;
+    if (!lat || !long) return;
+    if (this.state.marker) {
+      const latLng = new google.maps.LatLng(lat, long);
+      this.state.marker.setPosition(latLng);
+      this.state.map.panTo(latLng);
+      this.forceUpdate();
+    }
+  }
+
   locateUser() {
-    this.setState({ loading: true });
+    let nextFunction = this.updateMarkerPos;
+    if (this.state.locationMissing) {
+      this.setState({ loading: true });
+      nextFunction = this.initGoogleMap;
+    }
     const localStoreLocation = (lat, long) =>
       this.storeLocation(lat, long)
         .then(res => {
@@ -394,7 +460,7 @@ class Profile extends React.Component {
                 locationMissing: false,
                 loading: false
               },
-              () => this.initGoogleMap()
+              nextFunction
             );
           }
         })
@@ -465,7 +531,7 @@ class Profile extends React.Component {
         last_name: this.state.last_name.value
       })
     }).then(async res => {
-      this.setState({ noSubmit: false });
+      this.setState({ noSubmit: false, unauthorized: res.status === 200 });
       if (res.status === 400) {
         const json = await res.json();
         if (json.fieldName) {
@@ -603,16 +669,25 @@ class Profile extends React.Component {
             Localisation
           </p>
           <p className="subtitle is-6">
-            Drag the marker on the map in order to update your localisation.
+            Drag the marker on the map in order to update your localisation. Or
+            if you wish you can <a onClick={this.locateUser}>be located</a> to
+            reset your position.
           </p>
           {this.state.loading ? (
             <Loading />
           ) : this.state.locationMissing ? (
-            <div style={{ marginBottom: '1.5rem' }}>
-              Hey {this.props.user.username} 😊, we first need to{' '}
-              <a onClick={this.locateUser}>locate you</a> in order to display
-              the map with your location.
-            </div>
+            this.state.unauthorized ? (
+              <div style={{ marginBottom: '1.5rem' }}>
+                Wait, you must first fill some informations about you below
+                before being able to be localised.
+              </div>
+            ) : (
+              <div style={{ marginBottom: '1.5rem' }}>
+                Hey {this.props.user.username} 😊, we first need to{' '}
+                <a onClick={this.locateUser}>locate you</a> in order to display
+                the map with your location.
+              </div>
+            )
           ) : (
             <div id="google-map" />
           )}
@@ -760,4 +835,4 @@ class Profile extends React.Component {
   }
 }
 
-export default withLayout(Profile, true);
+export default withInitialProps(Profile, true);

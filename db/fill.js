@@ -1,5 +1,5 @@
 const db = require('./index');
-const fetch = require('isomorphic-fetch');
+const fetch = require('node-fetch');
 const bcrypt = require('bcrypt');
 const colors = require('colors');
 const sjcl = require('../sjcl');
