@@ -92,49 +92,51 @@ class User extends React.Component {
   }
 
   likeProfile() {
-    fetch(`/api/like/${this.state.user.id}`, {
-      method: 'POST',
-      credentials: 'same-origin',
-      signal: this.controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        'x-xsrf-token': window.localStorage.getItem('xsrfToken')
-      }
-    })
-      .then(res => {
-        if (res.status === 204) {
-          this.setState(prevState => {
-            return { liked: false, popularity: (prevState.popularity -= 3) };
-          });
-        }
-        if (res.status === 201) {
-          this.setState(prevState => {
-            return { liked: true, popularity: (prevState.popularity += 3) };
-          });
+    if (this.props.user.id !== this.state.user.id)
+      fetch(`/api/like/${this.state.user.id}`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        signal: this.controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-xsrf-token': window.localStorage.getItem('xsrfToken')
         }
       })
-      .catch(err => {
-        if (err.name === 'AbortError') return;
-      });
+        .then(res => {
+          if (res.status === 204) {
+            this.setState(prevState => {
+              return { liked: false, popularity: (prevState.popularity -= 3) };
+            });
+          }
+          if (res.status === 201) {
+            this.setState(prevState => {
+              return { liked: true, popularity: (prevState.popularity += 3) };
+            });
+          }
+        })
+        .catch(err => {
+          if (err.name === 'AbortError') return;
+        });
   }
 
   blockProfile() {
-    fetch(`/api/block/${this.state.user.id}`, {
-      method: 'POST',
-      credentials: 'same-origin',
-      signal: this.controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        'x-xsrf-token': window.localStorage.getItem('xsrfToken')
-      }
-    })
-      .then(res => {
-        if (res.status === 204) this.setState({ blocked: false });
-        if (res.status === 201) this.setState({ blocked: true });
+    if (this.props.user.id !== this.state.user.id)
+      fetch(`/api/block/${this.state.user.id}`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        signal: this.controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-xsrf-token': window.localStorage.getItem('xsrfToken')
+        }
       })
-      .catch(err => {
-        if (err.name === 'AbortError') return;
-      });
+        .then(res => {
+          if (res.status === 204) this.setState({ blocked: false });
+          if (res.status === 201) this.setState({ blocked: true });
+        })
+        .catch(err => {
+          if (err.name === 'AbortError') return;
+        });
   }
 
   componentWillUnmount() {
@@ -294,7 +296,10 @@ class User extends React.Component {
                   className="button"
                   onClick={() => {
                     // I could do anything I want, send a mail to someone for review, send a warning to the reported user...
-                    console.log(`You reported ${this.state.user.username}...`);
+                    if (this.props.user.id !== this.state.user.id)
+                      console.log(
+                        `You reported ${this.state.user.username}...`
+                      );
                   }}
                 >
                   <span className="icon is-small">

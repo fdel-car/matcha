@@ -83,6 +83,7 @@ io.on('connect', function(socket, next) {
   db.query('UPDATE users SET online = TRUE WHERE id = ($1)', [
     socket.decoded.uid
   ]).catch(err => next(err));
+  // Don't set offline if the user disconnect from one of his multiple tabs
   socket.on('disconnect', function() {
     db.query(
       'UPDATE users SET online = FALSE AND last_online_at = now() WHERE id = ($1)',

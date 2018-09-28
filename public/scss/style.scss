@@ -281,6 +281,7 @@ div.circle {
   height: 0.5rem;
   position: absolute;
   border-radius: 1rem;
+  border: $white-ter 0.05rem solid;
   &.is-success {
     background-color: $green;
   }
