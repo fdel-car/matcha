@@ -248,11 +248,22 @@ router.get('/user/:id', async function(req, res, next) {
               'UPDATE visits SET visited_at = now() WHERE id = ($1)',
               [result.rows[0].id]
             );
-          else
+          else {
             await db.query(
               'INSERT INTO visits (src_uid, dest_uid, visited_at) VALUES($1, $2, now())',
               [req.user.id, req.params.id]
             );
+            db.query(
+              'INSERT INTO notifications (src_uid, dest_uid, description) VALUES ($1, $2, $3)',
+              [
+                req.user.id,
+                req.params.id,
+                `This user, ${
+                  req.user.username
+                }, visited you for the first time!`
+              ]
+            );
+          }
         })
         .catch(err => next(err));
     res.status(200).json(user.rows[0] || {});
@@ -686,14 +697,55 @@ router.post('/like/:user_id', async function(req, res, next) {
         'DELETE FROM likes WHERE src_uid = ($1) AND dest_uid = ($2)',
         [req.user.id, req.params.user_id]
       );
+      db.query(
+        'INSERT INTO notifications (src_uid, dest_uid, description) VALUES ($1, $2, $3)',
+        [
+          req.user.id,
+          req.params.user_id,
+          `You just got unliked by ${
+            req.user.username
+          }, what a loss... no just kidding who cares?`
+        ]
+      );
       res.sendStatus(204);
     } else {
-      db.query('INSERT INTO likes (src_uid, dest_uid) VALUES ($1, $2)', [
+      await db.query('INSERT INTO likes (src_uid, dest_uid) VALUES ($1, $2)', [
         req.user.id,
         req.params.user_id
       ]);
+      db.query(
+        'SELECT id FROM likes WHERE src_uid = ($1) AND dest_uid = ($2)',
+        [req.params.user_id, req.user.id]
+      ).then(res => {
+        db.query(
+          'INSERT INTO notifications (src_uid, dest_uid, description) VALUES ($1, $2, $3)',
+          [
+            req.user.id,
+            req.params.user_id,
+            !res.rows[0]
+              ? `Hey, ${
+                  req.user.username
+                } liked you profile, could be interesting don't you think?`
+              : `It's a match! It seems there could be some alchemy between you and ${
+                  req.user.username
+                }.`
+          ]
+        );
+      });
       res.sendStatus(201);
     }
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/notification_count', async function(req, res, next) {
+  try {
+    const result = await db.query(
+      'SELECT COUNT(*) FROM notifications WHERE dest_uid = ($1) AND seen = FALSE',
+      [req.user.id]
+    );
+    res.status(200).send({ count: Number(result.rows[0].count) });
   } catch (err) {
     next(err);
   }

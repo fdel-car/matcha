@@ -48,6 +48,15 @@ long float8 DEFAULT NULL,\
 country char(2))'
     );
     await db.query(
+      'CREATE TABLE IF NOT EXISTS notifications (\
+id serial PRIMARY KEY,\
+src_uid integer NOT NULL references users(id),\
+dest_uid integer NOT NULL references users(id),\
+description varchar(512) NOT NULL,\
+seen boolean DEFAULT FALSE,\
+notified_at timestamptz DEFAULT now())'
+    );
+    await db.query(
       'CREATE TABLE IF NOT EXISTS likes (\
 id serial PRIMARY KEY,\
 src_uid integer NOT NULL references users(id),\

@@ -15,15 +15,19 @@ const NavigationItem = props => (
         className={'icon fas ' + props.icon}
         style={{
           marginRight: '0.25rem',
-          position: !props.socket || 'relative'
+          position: !props.has_overlay || 'relative'
         }}
       >
-        {props.socket ? (
+        {props.has_overlay ? (
           <div
             className={`circle ${
-              props.socket.connected ? 'is-success' : 'is-danger'
+              props.socket && props.socket.connected
+                ? 'is-success'
+                : 'is-danger'
             } ${props.label.toLowerCase()}`}
-          />
+          >
+            {props.notification_count || null}
+          </div>
         ) : null}
       </i>
       {props.label}
@@ -54,6 +58,18 @@ class NavigationBar extends React.Component {
         this.props.disconnectUser();
       }
     );
+  }
+
+  componentDidMount() {
+    fetch('/api/notification_count', {
+      method: 'GET',
+      credentials: 'same-origin'
+    }).then(async res => {
+      if (res.status == 200) {
+        const json = await res.json();
+        this.setState({ notification_count: json.count });
+      }
+    });
   }
 
   render() {
@@ -97,7 +113,15 @@ class NavigationBar extends React.Component {
                 icon="fa-user-alt"
                 label="Profile"
                 pathname="/profile"
+                has_overlay={true}
                 socket={this.props.socket}
+              />
+              <NavigationItem
+                icon="fas fa-bell"
+                label="Notifications"
+                pathname="/notifications"
+                has_overlay={this.state.notification_count > 0 ? true : false}
+                notification_count={this.state.notification_count}
               />
             </div>
             <div className="navbar-end">

@@ -277,8 +277,6 @@ section.has-navbar-fixed-top {
 }
 
 div.circle {
-  width: 0.5rem;
-  height: 0.5rem;
   position: absolute;
   border-radius: 1rem;
   border: $white-ter 0.05rem solid;
@@ -289,7 +287,19 @@ div.circle {
     background-color: $red;
   }
   &.profile {
+    width: 0.6rem;
+    height: 0.6rem;
     top: 55%;
-    right: 5%;
+    right: 0;
+  }
+  &.notifications {
+    top: -20%;
+    right: -20%;
+    color: white;
+    padding: 0.1rem;
+    font-size: small;
+    font-family: BlinkMacSystemFont, -apple-system, 'Segoe UI', 'Roboto',
+      'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans',
+      'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
   }
 }

@@ -12,10 +12,14 @@ const db = require('./index');
     // console.log(interests.rows);
     // const interest_list = await db.query('SELECT * FROM interest_list');
     // console.log(interest_list.rows);
+    const notifications = await db.query('SELECT * FROM notifications');
+    console.log(notifications.rows);
     // const likes = await db.query('SELECT * FROM likes');
     // console.log(likes.rows);
-    const visits = await db.query('SELECT * FROM visits');
-    console.log(visits.rows);
+    // const visits = await db.query('SELECT * FROM visits');
+    // console.log(visits.rows);
+    // const blockages = await db.query('SELECT * FROM blockages');
+    // console.log(blockages.rows);
   } catch (err) {
     console.log(`Error: ${err.message}.`, 'Did you run init.js?');
   }

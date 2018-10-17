@@ -125,9 +125,21 @@ String.prototype.toProperCase = function() {
           for (let i = 0; i <= nbr; i++) {
             const id = getRandomInt(usersInDB.rowCount + n) + 1;
             if (!ids.includes(id)) {
-              await db.query(
+              db.query(
                 'INSERT INTO visits (src_uid, dest_uid, visited_at) VALUES($1, $2, now())',
                 [res.rows[0].id, id],
+                false,
+                false
+              );
+              db.query(
+                'INSERT INTO notifications (src_uid, dest_uid, description) VALUES ($1, $2, $3)',
+                [
+                  res.rows[0].id,
+                  id,
+                  `This user, ${
+                    user.login.username
+                  }, visited you for the first time!`
+                ],
                 false,
                 false
               );
@@ -139,7 +151,7 @@ String.prototype.toProperCase = function() {
           for (let i = 0; i <= nbr; i++) {
             const id = getRandomInt(usersInDB.rowCount + n) + 1;
             if (!ids.includes(id)) {
-              await db.query(
+              db.query(
                 'INSERT INTO likes (src_uid, dest_uid, liked_at) VALUES($1, $2, now())',
                 [res.rows[0].id, id],
                 false,

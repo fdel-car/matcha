@@ -41,7 +41,6 @@ export default class Matcha extends App {
 
   disconnectUser = async () => {
     this.socket.close();
-    // this.socket = null;
     this.setState({ user: null });
   };
 
@@ -51,7 +50,6 @@ export default class Matcha extends App {
       Router.pathname
     );
     this.socket.open();
-    // this.socket = io();
     this.setState({ user });
   };
 
@@ -75,10 +73,14 @@ export default class Matcha extends App {
       this.props.pageProps.protectedPage,
       Router.pathname
     );
-    this.socket = io();
+    this.socket = io({
+      autoConnect: false
+    });
     this.socket.on('connect', () => {
+      console.debug(this.socket.id); // 'G5p5...'
       this.forceUpdate();
     });
+    if (user) this.socket.open();
     this.setState({ user, authVerified: true });
     window.addEventListener('storage', this.storageListener, false);
   }

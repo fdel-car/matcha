@@ -7,6 +7,7 @@ const fs = require('fs');
   await db.query('DROP TABLE IF EXISTS images CASCADE');
   await db.query('DROP TABLE IF EXISTS profiles CASCADE');
   await db.query('DROP TABLE IF EXISTS users CASCADE');
+  await db.query('DROP TABLE IF EXISTS notifications CASCADE');
   await db.query('DROP TABLE IF EXISTS likes CASCADE');
   await db.query('DROP TABLE IF EXISTS visits CASCADE');
   await db.query('DROP TABLE IF EXISTS blockages CASCADE');
