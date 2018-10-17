@@ -531,36 +531,62 @@ router.delete('/profile/interest', async function(req, res, next) {
 
 router.get('/users', async function(req, res, next) {
   try {
-    const gender = req.query.gender;
-    const sexuality = req.query.sexuality;
-    const lat = parseFloat(req.query.lat);
-    const long = parseFloat(req.query.long);
-    if (!lat || !long)
+    const profile = (await db.query(
+      "SELECT bio, gender, sexuality, to_char(birthday, 'YYYY-MM-DD') as birthday, CAST((CURRENT_DATE - birthday) / 365.242199 as FLOAT) as age, country, lat, long FROM profiles WHERE user_id = ($1)",
+      [req.user.id]
+    )).rows[0];
+    if (!profile.lat || !profile.long)
       return res.status(400).send({
-        error: 'latitude and longitude are both mandatory query parameter.'
+        error: 'Missing latitude and longitude, could not process the request.'
       });
     const users = await db.query(
-      'SELECT 2 * 6371 * asin(sqrt((sin(radians((lat - $2) / 2))) ^ 2 + cos(radians($2)) * cos(radians(lat)) * (sin(radians((long - $3) / 2))) ^ 2)) as distance,\
-      users.id, username, first_name, last_name, bio, birthday, country, filename,\
-      CASE WHEN likes.id IS NOT NULL\
-        THEN TRUE \
-        ELSE FALSE\
-      END AS liked,\
-      CAST((SELECT COUNT(*) FROM likes WHERE dest_uid = users.id) * 3 + (SELECT COUNT(*) FROM visits WHERE dest_uid = users.id) as INTEGER) as popularity,\
-      CAST((CURRENT_DATE - birthday) / 365.242199 as FLOAT) as age\
-      FROM users\
-        INNER JOIN profiles ON users.id = profiles.user_id\
-        LEFT JOIN images ON users.id = images.user_id AND images.position = 1\
-        LEFT JOIN likes ON users.id = likes.dest_uid AND likes.src_uid = ($4)\
-          WHERE\
-            verified = TRUE AND\
-            users.id NOT IN (SELECT dest_uid FROM blockages WHERE src_uid = ($4)) AND\
-            gender = ANY($1::int[]) AND\
-            users.id != ($4) AND\
-              CASE WHEN gender=($5) THEN sexuality IN(2, 3)\
-              ELSE sexuality IN(1, 3) END',
-      [getTargetedGenders(gender, sexuality), lat, long, req.user.id, gender]
+      'WITH top_query as(SELECT 2 * 6371 * asin(sqrt((sin(radians((lat - $2) / 2))) ^ 2 + cos(radians($2)) * cos(radians(lat)) * (sin(radians((long - $3) / 2))) ^ 2)) as distance,\
+        users.id, username, first_name, last_name, bio, birthday, country, filename,\
+        CASE WHEN likes.id IS NOT NULL\
+          THEN TRUE\
+          ELSE FALSE\
+        END AS liked,\
+        CAST((SELECT COUNT(*) FROM likes WHERE dest_uid = users.id) * 3 + (SELECT COUNT(*) FROM visits WHERE dest_uid = users.id) as INTEGER) as popularity,\
+        CAST((CURRENT_DATE - birthday) / 365.242199 as FLOAT) as age,\
+        CAST((SELECT COUNT(*) FROM interest_list WHERE interest_list.user_id = users.id AND interest_id IN (SELECT interest_id FROM interest_list WHERE user_id = ($4))) as INTEGER) as nbr_common_interest\
+        FROM users\
+          INNER JOIN profiles ON users.id = profiles.user_id\
+          LEFT JOIN images ON users.id = images.user_id AND images.position = 1\
+          LEFT JOIN likes ON users.id = likes.dest_uid AND likes.src_uid = ($4)\
+        WHERE\
+          verified = TRUE AND\
+          users.id NOT IN (SELECT dest_uid FROM blockages WHERE src_uid = ($4)) AND\
+          gender = ANY($1::int[]) AND\
+          users.id != ($4) AND\
+          CASE WHEN gender=($5) THEN sexuality IN(2, 3)\
+            ELSE sexuality IN(1, 3)\
+          END)\
+      SELECT -(distance - min_distance) / NULLIF((max_distance - min_distance), 0) * 1.2 +\
+      (popularity - min_popularity) / NULLIF(CAST((max_popularity - min_popularity) as FLOAT), 0) +\
+      nbr_common_interest * 0.175 - ABS($6 - age) * 0.05 as score, *\
+      FROM\
+        (SELECT *, (SELECT MAX(distance) FROM top_query) as max_distance, (SELECT MIN(distance) FROM top_query) as min_distance,\
+        (SELECT MAX(popularity) FROM top_query) as max_popularity, (SELECT MIN(popularity) FROM top_query) as min_popularity,\
+        (SELECT MAX(age) FROM top_query) as max_age, (SELECT MIN(age) FROM top_query) as min_age\
+      FROM top_query) top_query ORDER BY score DESC',
+      [
+        getTargetedGenders(profile.gender, profile.sexuality),
+        profile.lat,
+        profile.long,
+        req.user.id,
+        profile.gender,
+        profile.age
+      ]
     );
+    let limits = {};
+    if (users.rows.length != 0) {
+      limits.max_distance = users.rows[0].max_distance;
+      limits.min_distance = users.rows[0].min_distance;
+      limits.max_popularity = users.rows[0].max_popularity;
+      limits.min_popularity = users.rows[0].min_popularity;
+      limits.max_age = users.rows[0].max_age;
+      limits.min_age = users.rows[0].min_age;
+    }
     const promises = users.rows.map(user => {
       return db
         .query(
@@ -571,10 +597,17 @@ router.get('/users', async function(req, res, next) {
         )
         .then(result => {
           user.interests = result.rows;
+          delete user.nbr_common_interest;
+          delete user.max_distance;
+          delete user.min_distance;
+          delete user.max_popularity;
+          delete user.min_popularity;
+          delete user.max_age;
+          delete user.min_age;
         });
     });
     await Promise.all(promises);
-    res.status(200).send(users.rows);
+    res.status(200).send({ users: users.rows, limits });
   } catch (err) {
     next(err);
   }

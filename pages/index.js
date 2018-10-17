@@ -43,7 +43,6 @@ class Home extends React.Component {
     this.updateUserList = this.updateUserList.bind(this);
     this.locateUser = this.locateUser.bind(this);
     this.likeProfile = this.likeProfile.bind(this);
-    this.defaultSort = this.defaultSort.bind(this);
     this.selectChange = this.selectChange.bind(this);
     this.sortBy = this.sortBy.bind(this);
     this.filterBy = throttle(300, this.filterBy);
@@ -51,108 +50,18 @@ class Home extends React.Component {
     this.tagFilterChange = this.tagFilterChange.bind(this);
   }
 
-  defaultSort() {
-    const levelDist =
-      (this.state.limits.upperDist || this.state.scope.maxDist) / 10;
-    const levelPopularity =
-      (this.state.limits.upperPopularity || this.state.scope.maxPopularity) /
-      10;
-    this.state.users.sort((a, b) => {
-      let scoreA =
-        -Math.round(
-          (a.distance -
-            (this.state.limits.lowerDist || this.state.scope.minDist)) /
-            levelDist
-        ) * 10;
-      let scoreB =
-        -Math.round(
-          (b.distance -
-            (this.state.limits.lowerDist || this.state.scope.minDist)) /
-            levelDist
-        ) * 10;
-      if (levelPopularity) {
-        scoreA +=
-          Math.round(
-            (a.popularity -
-              (this.state.limits.lowerPopularity ||
-                this.state.scope.minPopularity)) /
-              levelPopularity
-          ) * 2;
-        scoreB +=
-          Math.round(
-            (b.popularity -
-              (this.state.limits.lowerPopularity ||
-                this.state.scope.minPopularity)) /
-              levelPopularity
-          ) * 2;
-      }
-      a.interests.forEach(interest => {
-        for (let i = 0; i < this.state.interests.length; i++) {
-          if (this.state.interests[i].id === interest.id) scoreA += 15;
-        }
-      });
-      b.interests.forEach(interest => {
-        for (let i = 0; i < this.state.interests.length; i++) {
-          if (this.state.interests[i].id === interest.id) scoreB += 15;
-        }
-      });
-      scoreA -= Math.abs(a.age - this.state.profile.age);
-      scoreB -= Math.abs(b.age - this.state.profile.age);
-      if (a.distance !== b.distance)
-        a.distance < b.distance ? scoreA++ : scoreB++;
-      if (a.popularity !== b.popularity)
-        a.popularity > b.popularity ? scoreA++ : scoreB++;
-      return scoreA < scoreB ? 1 : -1;
-    });
-    if (this.state.loading) {
-      const deepClone = JSON.parse(JSON.stringify(this.state.users));
-      const orderedByAge = JSON.parse(JSON.stringify(this.state.users));
-      orderedByAge.sort(
-        (a, b) =>
-          Math.abs(a.age - this.state.profile.age) >
-          Math.abs(b.age - this.state.profile.age)
-            ? 1
-            : -1
-      );
-      const orderedByDistance = JSON.parse(JSON.stringify(this.state.users));
-      orderedByDistance.sort((a, b) => (a.distance > b.distance ? 1 : -1));
-      const orderedByPopularity = JSON.parse(JSON.stringify(this.state.users));
-      orderedByPopularity.sort(
-        (a, b) => (a.popularity < b.popularity ? 1 : -1)
-      );
-
-      return this.setState({
-        users: this.state.users,
-        lists: {
-          default: deepClone,
-          age: orderedByAge,
-          distance: orderedByDistance,
-          popularity: orderedByPopularity
-        },
-        loading: false
-      });
-    }
-  }
-
   updateUserList() {
-    fetch(
-      `/api/users?lat=${this.state.profile.lat}&long=${
-        this.state.profile.long
-      }&gender=${this.state.profile.gender}&sexuality=${
-        this.state.profile.sexuality
-      }`,
-      {
-        method: 'GET',
-        signal: this.controller.signal,
-        credentials: 'same-origin'
-      }
-    )
+    fetch(`/api/users`, {
+      method: 'GET',
+      signal: this.controller.signal,
+      credentials: 'same-origin'
+    })
       .then(async res => {
         if (res.status === 400) {
           const json = await res.json();
           if (
             json.error ===
-            'latitude and longitude are both mandatory query parameter.'
+            'Missing latitude and longitude, could not process the request.'
           )
             this.setState({
               loading: false,
@@ -161,39 +70,38 @@ class Home extends React.Component {
             });
         }
         if (res.status === 200) {
-          const users = await res.json();
-          if (users.length === 0)
-            return this.setState({
-              users: this.state.users,
-              lists: {
-                default: [],
-                age: [],
-                distance: [],
-                popularity: []
-              },
-              loading: false
-            });
-          this.state.scope.minDist = Infinity;
-          this.state.scope.maxDist = 0;
-          this.state.scope.minPopularity = Infinity;
-          this.state.scope.maxPopularity = 0;
-          this.state.scope.minAge = Infinity;
-          this.state.scope.maxAge = 0;
-          users.forEach(user => {
-            if (user.popularity > this.state.scope.maxPopularity)
-              this.state.scope.maxPopularity = user.popularity;
-            if (user.popularity < this.state.scope.minPopularity)
-              this.state.scope.minPopularity = user.popularity;
-            if (user.distance > this.state.scope.maxDist)
-              this.state.scope.maxDist = Math.ceil(user.distance);
-            if (user.distance < this.state.scope.minDist)
-              this.state.scope.minDist = ~~user.distance;
-            if (user.age > this.state.scope.maxAge)
-              this.state.scope.maxAge = Math.ceil(user.age);
-            if (user.age < this.state.scope.minAge)
-              this.state.scope.minAge = ~~user.age;
+          const obj = await res.json();
+          this.state.scope.minDist = Math.floor(obj.limits.min_distance) || 0;
+          this.state.scope.maxDist = Math.ceil(obj.limits.max_distance) || 100;
+          this.state.scope.minPopularity = obj.limits.min_popularity || 0;
+          this.state.scope.maxPopularity = obj.limits.max_popularity || 100;
+          this.state.scope.minAge = Math.floor(obj.limits.min_age) || 20;
+          this.state.scope.maxAge = Math.ceil(obj.limits.max_age) || 60;
+          const deepClone = JSON.parse(JSON.stringify(obj.users));
+          const orderedByAge = JSON.parse(JSON.stringify(obj.users));
+          orderedByAge.sort(
+            (a, b) =>
+              Math.abs(a.age - this.state.profile.age) >
+              Math.abs(b.age - this.state.profile.age)
+                ? 1
+                : -1
+          );
+          const orderedByDistance = JSON.parse(JSON.stringify(obj.users));
+          orderedByDistance.sort((a, b) => (a.distance > b.distance ? 1 : -1));
+          const orderedByPopularity = JSON.parse(JSON.stringify(obj.users));
+          orderedByPopularity.sort(
+            (a, b) => (a.popularity < b.popularity ? 1 : -1)
+          );
+          this.setState({
+            users: obj.users,
+            lists: {
+              default: deepClone,
+              age: orderedByAge,
+              distance: orderedByDistance,
+              popularity: orderedByPopularity
+            },
+            loading: false
           });
-          this.setState({ users, scope: this.state.scope }, this.defaultSort);
         }
       })
       .catch(err => {
@@ -338,7 +246,7 @@ class Home extends React.Component {
         );
         break;
       default:
-        this.defaultSort();
+        this.state.users.sort((a, b) => (a.score < b.score ? 1 : -1));
         break;
     }
     this.setState({ sort_by: parameter, users: this.state.users });
