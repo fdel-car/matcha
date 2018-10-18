@@ -132,14 +132,8 @@ String.prototype.toProperCase = function() {
                 false
               );
               db.query(
-                'INSERT INTO notifications (src_uid, dest_uid, description) VALUES ($1, $2, $3)',
-                [
-                  res.rows[0].id,
-                  id,
-                  `This user, ${
-                    user.login.username
-                  }, visited you for the first time!`
-                ],
+                "INSERT INTO notifications (src_uid, dest_uid, type) VALUES ($1, $2, 'visit')",
+                [res.rows[0].id, id],
                 false,
                 false
               );
@@ -157,6 +151,21 @@ String.prototype.toProperCase = function() {
                 false,
                 false
               );
+              await db
+                .query(
+                  'SELECT * FROM likes WHERE dest_uid = ($1) AND src_uid = ($2)',
+                  [res.rows[0].id, id],
+                  false,
+                  false
+                )
+                .then(result => {
+                  db.query(
+                    'INSERT INTO notifications (src_uid, dest_uid, type) VALUES ($1, $2, $3)',
+                    [res.rows[0].id, id, !result.rows[0] ? 'like' : 'match'],
+                    false,
+                    false
+                  );
+                });
               ids.push(id);
             }
           }

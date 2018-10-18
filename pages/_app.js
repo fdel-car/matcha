@@ -77,7 +77,7 @@ export default class Matcha extends App {
       autoConnect: false
     });
     this.socket.on('connect', () => {
-      console.debug(this.socket.id); // 'G5p5...'
+      // console.debug(this.socket.id); // 'G5p5...'
       this.forceUpdate();
     });
     if (user) this.socket.open();
@@ -87,10 +87,10 @@ export default class Matcha extends App {
 
   componentWillUnmount() {
     window.removeEventListener('storage', this.storageListener, false);
+    this.socket.close();
   }
 
   render() {
-    if (this.socket) console.log('Socket connected:', this.socket.connected);
     const { Component, pageProps } = this.props;
     const user = this.state.user;
     if (!this.state.loadingPage && this.state.authVerified) {
@@ -136,6 +136,7 @@ export default class Matcha extends App {
                 connectUser={this.connectUser}
                 {...pageProps}
                 user={user}
+                socket={this.socket}
               />
             </section>
           </>

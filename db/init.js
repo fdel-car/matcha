@@ -52,9 +52,9 @@ country char(2))'
 id serial PRIMARY KEY,\
 src_uid integer NOT NULL references users(id),\
 dest_uid integer NOT NULL references users(id),\
-description varchar(512) NOT NULL,\
+type varchar(64) NOT NULL,\
 seen boolean DEFAULT FALSE,\
-notified_at timestamptz DEFAULT now())'
+created_at timestamptz DEFAULT now())'
     );
     await db.query(
       'CREATE TABLE IF NOT EXISTS likes (\

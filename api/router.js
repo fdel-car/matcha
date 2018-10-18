@@ -254,15 +254,19 @@ router.get('/user/:id', async function(req, res, next) {
               [req.user.id, req.params.id]
             );
             db.query(
-              'INSERT INTO notifications (src_uid, dest_uid, description) VALUES ($1, $2, $3)',
-              [
-                req.user.id,
-                req.params.id,
-                `This user, ${
-                  req.user.username
-                }, visited you for the first time!`
-              ]
-            );
+              'SELECT id FROM blockages WHERE src_uid = ($1) AND dest_uid = ($2)',
+              [req.params.user_id, req.user.id]
+            ).then(inDB => {
+              if (!inDB.rows[0])
+                db.query(
+                  "INSERT INTO notifications (src_uid, dest_uid, type) VALUES ($1, $2, 'visit')",
+                  [req.user.id, req.params.id]
+                ).then(() => {
+                  req.io_users[req.params.user_id].forEach(socketId =>
+                    req.io.to(socketId).emit('new-notification')
+                  );
+                });
+            });
           }
         })
         .catch(err => next(err));
@@ -472,6 +476,40 @@ router.get('/profile/interests/:user_id', async function(req, res, next) {
   }
 });
 
+router.get('/profile/notifications', async function(req, res, next) {
+  try {
+    const notifications = await db.query(
+      'SELECT id, src_uid, type, created_at FROM notifications WHERE dest_uid = ($1) ORDER BY created_at DESC LIMIT 50',
+      [req.user.id]
+    );
+    db.query('UPDATE notifications SET seen = TRUE WHERE dest_uid = ($1)', [
+      req.user.id
+    ]).then(() => {
+      req.io_users[req.user.id].forEach(socketId =>
+        req.io.to(socketId).emit('reset-notification-count')
+      );
+    });
+    const promises = notifications.rows.map(notification => {
+      return db
+        .query(
+          'SELECT username, filename FROM users\
+            LEFT JOIN images ON users.id = images.user_id AND images.position = 1\
+          WHERE users.id = ($1)',
+          [notification.src_uid],
+          false,
+          false
+        )
+        .then(result => {
+          notification.src_user = result.rows[0];
+        });
+    });
+    await Promise.all(promises);
+    res.status(200).send(notifications.rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post('/profile/interest', async function(req, res, next) {
   if (!req.body)
     return res.status(400).json({ error: 'No body passed to make the call.' });
@@ -573,7 +611,7 @@ router.get('/users', async function(req, res, next) {
             ELSE sexuality IN(1, 3)\
           END)\
       SELECT -(distance - min_distance) / NULLIF((max_distance - min_distance), 0) * 1.2 +\
-      (popularity - min_popularity) / NULLIF(CAST((max_popularity - min_popularity) as FLOAT), 0) +\
+      (popularity - min_popularity) / NULLIF(CAST((max_popularity - min_popularity) as FLOAT), 0) * 0.8 +\
       nbr_common_interest * 0.175 - ABS($6 - age) * 0.05 as score, *\
       FROM\
         (SELECT *, (SELECT MAX(distance) FROM top_query) as max_distance, (SELECT MIN(distance) FROM top_query) as min_distance,\
@@ -698,15 +736,23 @@ router.post('/like/:user_id', async function(req, res, next) {
         [req.user.id, req.params.user_id]
       );
       db.query(
-        'INSERT INTO notifications (src_uid, dest_uid, description) VALUES ($1, $2, $3)',
-        [
-          req.user.id,
-          req.params.user_id,
-          `You just got unliked by ${
-            req.user.username
-          }, what a loss... no just kidding who cares?`
-        ]
-      );
+        'SELECT id FROM blockages WHERE src_uid = ($1) AND dest_uid = ($2)',
+        [req.params.user_id, req.user.id]
+      ).then(async inDB => {
+        if (!inDB.rows[0]) {
+          await db.query(
+            "INSERT INTO notifications (src_uid, dest_uid, type) VALUES ($1, $2, 'unlike')",
+            [req.user.id, req.params.user_id]
+          );
+          await db.query(
+            "DELETE FROM notifications WHERE id IN (SELECT id FROM notifications WHERE src_uid = ($1) AND dest_uid = ($2) AND type IN ('unlike', 'like', 'match') ORDER BY created_at DESC OFFSET 2)",
+            [req.user.id, req.params.user_id]
+          );
+          req.io_users[req.params.user_id].forEach(socketId =>
+            req.io.to(socketId).emit('new-notification')
+          );
+        }
+      });
       res.sendStatus(204);
     } else {
       await db.query('INSERT INTO likes (src_uid, dest_uid) VALUES ($1, $2)', [
@@ -714,23 +760,23 @@ router.post('/like/:user_id', async function(req, res, next) {
         req.params.user_id
       ]);
       db.query(
-        'SELECT id FROM likes WHERE src_uid = ($1) AND dest_uid = ($2)',
+        'SELECT id FROM blockages WHERE src_uid = ($1) AND dest_uid = ($2)',
         [req.params.user_id, req.user.id]
-      ).then(res => {
-        db.query(
-          'INSERT INTO notifications (src_uid, dest_uid, description) VALUES ($1, $2, $3)',
-          [
-            req.user.id,
-            req.params.user_id,
-            !res.rows[0]
-              ? `Hey, ${
-                  req.user.username
-                } liked you profile, could be interesting don't you think?`
-              : `It's a match! It seems there could be some alchemy between you and ${
-                  req.user.username
-                }.`
-          ]
-        );
+      ).then(inDB => {
+        if (!inDB.rows[0])
+          db.query(
+            'SELECT id FROM likes WHERE src_uid = ($1) AND dest_uid = ($2)',
+            [req.params.user_id, req.user.id]
+          ).then(res => {
+            db.query(
+              'INSERT INTO notifications (src_uid, dest_uid, type) VALUES ($1, $2, $3)',
+              [req.user.id, req.params.user_id, !res.rows[0] ? 'like' : 'match']
+            ).then(() => {
+              req.io_users[req.params.user_id].forEach(socketId =>
+                req.io.to(socketId).emit('new-notification')
+              );
+            });
+          });
       });
       res.sendStatus(201);
     }

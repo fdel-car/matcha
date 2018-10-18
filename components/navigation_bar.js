@@ -38,12 +38,12 @@ const NavigationItem = props => (
 class NavigationBar extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { mobileMenuOpen: false };
-    this.openMobileMenu = this.openMobileMenu.bind(this);
+    this.state = { mobileMenuOpen: false, notification_count: 0 };
+    this.toggleMobileMenu = this.toggleMobileMenu.bind(this);
     this.logout = this.logout.bind(this);
   }
 
-  openMobileMenu() {
+  toggleMobileMenu() {
     this.setState(prevState => {
       return {
         mobileMenuOpen: prevState.mobileMenuOpen ? false : true
@@ -60,7 +60,7 @@ class NavigationBar extends React.Component {
     );
   }
 
-  componentDidMount() {
+  getNotificationCount = () => {
     fetch('/api/notification_count', {
       method: 'GET',
       credentials: 'same-origin'
@@ -69,6 +69,16 @@ class NavigationBar extends React.Component {
         const json = await res.json();
         this.setState({ notification_count: json.count });
       }
+    });
+  };
+
+  componentDidMount() {
+    this.getNotificationCount();
+    this.props.socket.on('reset-notification-count', () => {
+      this.setState({ notification_count: 0 });
+    });
+    this.props.socket.on('new-notification', () => {
+      if (Router.pathname !== '/notifications') this.getNotificationCount();
     });
   }
 
@@ -95,7 +105,7 @@ class NavigationBar extends React.Component {
               }
               aria-label="menu"
               aria-expanded="false"
-              onClick={this.openMobileMenu}
+              onClick={this.toggleMobileMenu}
             >
               <span aria-hidden="true" />
               <span aria-hidden="true" />
