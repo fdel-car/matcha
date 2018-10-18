@@ -26,7 +26,7 @@ const NavigationItem = props => (
                 : 'is-danger'
             } ${props.label.toLowerCase()}`}
           >
-            {props.notification_count || null}
+            {props.overlay_count || null}
           </div>
         ) : null}
       </i>
@@ -131,7 +131,7 @@ class NavigationBar extends React.Component {
                 label="Notifications"
                 pathname="/notifications"
                 has_overlay={this.state.notification_count > 0 ? true : false}
-                notification_count={this.state.notification_count}
+                overlay_count={this.state.notification_count}
               />
             </div>
             <div className="navbar-end">
