@@ -24,7 +24,7 @@ const NavigationItem = props => (
               props.socket && props.socket.connected
                 ? 'is-success'
                 : 'is-danger'
-            } ${props.label.toLowerCase()}`}
+              } ${props.label.toLowerCase()}`}
           >
             {props.overlay_count || null}
           </div>
@@ -65,7 +65,7 @@ class NavigationBar extends React.Component {
       method: 'GET',
       credentials: 'same-origin'
     }).then(async res => {
-      if (res.status == 200) {
+      if (res.status == 200 && !this.isUnmounted) {
         const json = await res.json();
         this.setState({ notification_count: json.count });
       }
@@ -78,8 +78,12 @@ class NavigationBar extends React.Component {
       this.setState({ notification_count: 0 });
     });
     this.props.socket.on('new-notification', () => {
-      if (Router.pathname !== '/notifications') this.getNotificationCount();
+      if (Router.pathname !== '/notifications' && !this.isUnmounted) this.getNotificationCount();
     });
+  }
+
+  componentWillUnmount() {
+    this.isUnmounted = true;
   }
 
   render() {

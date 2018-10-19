@@ -77,7 +77,7 @@ export default class Matcha extends App {
       autoConnect: false
     });
     this.socket.on('connect', () => {
-      // console.debug(this.socket.id); // 'G5p5...'
+      console.debug(this.socket.id); // 'G5p5...'
       this.forceUpdate();
     });
     if (user) this.socket.open();
@@ -87,7 +87,6 @@ export default class Matcha extends App {
 
   componentWillUnmount() {
     window.removeEventListener('storage', this.storageListener, false);
-    this.socket.close();
   }
 
   render() {
@@ -116,33 +115,33 @@ export default class Matcha extends App {
           />
         </Head>
         {(!!user || (this.state.authVerified && !pageProps.protectedPage)) &&
-        !this.state.loadingPage ? (
-          <>
-            {pageProps.protectedPage ? (
-              <NavigationBar
-                disconnectUser={this.disconnectUser}
-                socket={this.socket}
-              />
-            ) : null}
-            <section
-              className={
-                'section' +
-                (!pageProps.protectedPage
-                  ? ' anon-layout'
-                  : ' has-navbar-fixed-top')
-              }
-            >
-              <Component
-                connectUser={this.connectUser}
-                {...pageProps}
-                user={user}
-                socket={this.socket}
-              />
-            </section>
-          </>
-        ) : (
-          <Loading />
-        )}
+          !this.state.loadingPage ? (
+            <>
+              {pageProps.protectedPage ? (
+                <NavigationBar
+                  disconnectUser={this.disconnectUser}
+                  socket={this.socket}
+                />
+              ) : null}
+              <section
+                className={
+                  'section' +
+                  (!pageProps.protectedPage
+                    ? ' anon-layout'
+                    : ' has-navbar-fixed-top')
+                }
+              >
+                <Component
+                  connectUser={this.connectUser}
+                  {...pageProps}
+                  user={user}
+                  socket={this.socket}
+                />
+              </section>
+            </>
+          ) : (
+            <Loading />
+          )}
       </Container>
     );
   }

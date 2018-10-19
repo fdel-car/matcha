@@ -262,9 +262,10 @@ router.get('/user/:id', async function(req, res, next) {
                   "INSERT INTO notifications (src_uid, dest_uid, type) VALUES ($1, $2, 'visit')",
                   [req.user.id, req.params.id]
                 ).then(() => {
-                  req.io_users[req.params.user_id].forEach(socketId =>
-                    req.io.to(socketId).emit('new-notification')
-                  );
+                  if (req.io_users[req.params.id])
+                    req.io_users[req.params.id].forEach(socketId =>
+                      req.io.to(socketId).emit('new-notification')
+                    );
                 });
             });
           }
@@ -284,7 +285,7 @@ router.get('/file/protected/:name', function(req, res, next) {
     root:
       __dirname +
       `/../protected/${
-        imgExtension.indexOf(fileType) >= 0 ? 'img/' : 'other/'
+      imgExtension.indexOf(fileType) >= 0 ? 'img/' : 'other/'
       }`,
     dotfiles: 'deny',
     headers: {
@@ -485,9 +486,10 @@ router.get('/profile/notifications', async function(req, res, next) {
     db.query('UPDATE notifications SET seen = TRUE WHERE dest_uid = ($1)', [
       req.user.id
     ]).then(() => {
-      req.io_users[req.user.id].forEach(socketId =>
-        req.io.to(socketId).emit('reset-notification-count')
-      );
+      if (req.io_users[req.user.id])
+        req.io_users[req.user.id].forEach(socketId =>
+          req.io.to(socketId).emit('reset-notification-count')
+        );
     });
     const promises = notifications.rows.map(notification => {
       return db
@@ -524,9 +526,9 @@ router.post('/profile/interest', async function(req, res, next) {
     ]);
     const id = !inDB.rows[0]
       ? (await db.query(
-          'INSERT INTO interests (id, label) VALUES (DEFAULT, $1) RETURNING id',
-          [interest]
-        )).rows[0].id
+        'INSERT INTO interests (id, label) VALUES (DEFAULT, $1) RETURNING id',
+        [interest]
+      )).rows[0].id
       : inDB.rows[0].id;
     db.query(
       'SELECT * FROM interest_list WHERE user_id = ($1) AND interest_id = ($2)',
@@ -748,9 +750,10 @@ router.post('/like/:user_id', async function(req, res, next) {
             "DELETE FROM notifications WHERE id IN (SELECT id FROM notifications WHERE src_uid = ($1) AND dest_uid = ($2) AND type IN ('unlike', 'like', 'match') ORDER BY created_at DESC OFFSET 2)",
             [req.user.id, req.params.user_id]
           );
-          req.io_users[req.params.user_id].forEach(socketId =>
-            req.io.to(socketId).emit('new-notification')
-          );
+          if (req.io_users[req.params.user_id])
+            req.io_users[req.params.user_id].forEach(socketId =>
+              req.io.to(socketId).emit('new-notification')
+            );
         }
       });
       res.sendStatus(204);
@@ -772,9 +775,10 @@ router.post('/like/:user_id', async function(req, res, next) {
               'INSERT INTO notifications (src_uid, dest_uid, type) VALUES ($1, $2, $3)',
               [req.user.id, req.params.user_id, !res.rows[0] ? 'like' : 'match']
             ).then(() => {
-              req.io_users[req.params.user_id].forEach(socketId =>
-                req.io.to(socketId).emit('new-notification')
-              );
+              if (req.io_users[req.params.user_id])
+                req.io_users[req.params.user_id].forEach(socketId =>
+                  req.io.to(socketId).emit('new-notification')
+                );
             });
           });
       });

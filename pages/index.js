@@ -82,7 +82,7 @@ class Home extends React.Component {
           orderedByAge.sort(
             (a, b) =>
               Math.abs(a.age - this.state.profile.age) >
-              Math.abs(b.age - this.state.profile.age)
+                Math.abs(b.age - this.state.profile.age)
                 ? 1
                 : -1
           );
@@ -240,7 +240,7 @@ class Home extends React.Component {
         this.state.users.sort(
           (a, b) =>
             Math.abs(a[parameter] - this.state.profile.age) >
-            Math.abs(b[parameter] - this.state.profile.age)
+              Math.abs(b[parameter] - this.state.profile.age)
               ? 1
               : -1
         );
@@ -407,9 +407,9 @@ class Home extends React.Component {
               names={['lowerPopularity', 'upperPopularity']}
               values={[
                 this.state.limits.lowerPopularity ||
-                  this.state.scope.minPopularity,
+                this.state.scope.minPopularity,
                 this.state.limits.upperPopularity ||
-                  this.state.scope.maxPopularity
+                this.state.scope.maxPopularity
               ]}
               min={this.state.scope.minPopularity}
               max={this.state.scope.maxPopularity}
@@ -425,23 +425,23 @@ class Home extends React.Component {
           this.state.users.length === 0 ? (
             <div>It seems that there is no one matching your criteria 😕.</div>
           ) : (
-            <div className="columns is-mobile is-multiline">
-              {this.state.users.map(user => (
-                <div
-                  key={user.id}
-                  className="column is-full-tiny is-half-mobile is-one-third-tablet is-one-quarter-widescreen"
-                >
-                  <ProfileCard
-                    img={{ filename: user.filename }}
-                    user={{
-                      ...user
-                    }}
-                    likeProfile={this.likeProfile}
-                  />
-                </div>
-              ))}
-            </div>
-          )
+              <div className="columns is-mobile is-multiline">
+                {this.state.users.map(user => (
+                  <div
+                    key={user.id}
+                    className="column is-full-tiny is-half-mobile is-one-third-tablet is-one-quarter-widescreen"
+                  >
+                    <ProfileCard
+                      img={{ filename: user.filename }}
+                      user={{
+                        ...user
+                      }}
+                      likeProfile={this.likeProfile}
+                    />
+                  </div>
+                ))}
+              </div>
+            )
         ) : !this.state.loading && this.state.unauthorized ? (
           this.state.locationMissing ? (
             <div>
@@ -450,18 +450,18 @@ class Home extends React.Component {
               <a onClick={this.locateUser}>let us locate you</a>.
             </div>
           ) : (
-            <div>
-              Hi {this.props.user.username} 👋, in order to see the other users
+              <div>
+                Hi {this.props.user.username} 👋, in order to see the other users
               on the app you first need to give some informations about you{' '}
-              <Link href="/profile">
-                <a>here</a>
-              </Link>
-              .
+                <Link href="/profile">
+                  <a>here</a>
+                </Link>
+                .
             </div>
-          )
+            )
         ) : (
-          <Loading />
-        )}
+              <Loading />
+            )}
       </div>
     );
   }

@@ -43,6 +43,7 @@ io.on('connect', function(socket, next) {
       .catch(err => next(err));
   else users[socket.decoded.uid].push(socket.id);
   socket.on('disconnect', function() {
+    if (!users[socket.decoded.uid]) return;
     if (users[socket.decoded.uid].length == 1)
       db.query(
         'UPDATE users SET online = FALSE AND last_online_at = now() WHERE id = ($1)',

@@ -3,6 +3,11 @@ function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
 }
 
+function toAge(dateString) {
+  let birthday = new Date(dateString).getTime();
+  return ~~((Date.now() - birthday) / 31557600000);
+}
+
 // Accept char with accents, don't forget
 const validateName = name => {
   let errors = [];
@@ -58,6 +63,11 @@ const validateDate = date => {
   let errors = [];
   const regex = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
   if (!regex.test(date)) errors.push('This date is not well formatted.');
+  else {
+    const age = toAge(date);
+    if (age < 18) errors.push('You have to be an adult to use this website.');
+    else if (age > 115) errors.push('You should be dead already, come on...');
+  }
   return errors;
 };
 
