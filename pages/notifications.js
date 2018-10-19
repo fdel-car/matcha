@@ -127,8 +127,8 @@ class Notifications extends React.Component {
             }
           })
         ) : (
-          <div>Nothing woth mentioning happened to your profile :/.</div>
-        )}
+            <div>Nothing worth mentioning happened to your profile :/.</div>
+          )}
       </div>
     );
   }

@@ -408,8 +408,8 @@ class Home extends React.Component {
               values={[
                 this.state.limits.lowerPopularity ||
                 this.state.scope.minPopularity,
-                this.state.limits.upperPopularity ||
-                this.state.scope.maxPopularity
+                this.state.limits.upperPopularity == undefined ? this.state.scope.maxPopularity :
+                  this.state.limits.upperPopularity
               ]}
               min={this.state.scope.minPopularity}
               max={this.state.scope.maxPopularity}
